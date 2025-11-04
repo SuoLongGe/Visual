@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>职数洞见 - 招聘数据分析平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            margin: 0 5px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-tab.active {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+
+        .content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            min-height: 500px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .api-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+
+        .api-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .api-section p {
+            margin-bottom: 15px;
+            color: #666;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border-left-color: #28a745;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h4 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 职数洞见</h1>
+            <p>招聘数据分析平台 - 多维度数据可视化分析</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('overview')">数据概览</button>
+            <button class="nav-tab" onclick="showTab('city')">城市分析</button>
+            <button class="nav-tab" onclick="showTab('industry')">行业分析</button>
+            <button class="nav-tab" onclick="showTab('experience')">经验分析</button>
+        </div>
+
+        <div class="content">
+            <!-- 数据概览 -->
+            <div id="overview" class="tab-content active">
+                <h2>📊 数据概览</h2>
+                <div class="api-section">
+                    <h3>整体数据统计</h3>
+                    <p>获取数据集的整体概览信息，包括总记录数、数据质量等</p>
+                    <button class="btn" onclick="getOverview()">获取数据概览</button>
+                    <div class="loading" id="overview-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="overview-result"></div>
+                </div>
+            </div>
+
+            <!-- 城市分析 -->
+            <div id="city" class="tab-content">
+                <h2>🏙️ 城市分析</h2>
+                
+                <div class="api-section">
+                    <h3>城市招聘分布</h3>
+                    <p>获取各城市的招聘职位分布和平均薪资数据</p>
+                    <div class="input-group">
+                        <label>返回城市数量限制:</label>
+                        <input type="number" id="city-limit" value="10" min="1" max="1000">
+                    </div>
+                    <div class="input-group">
+                        <label>最小职位数量过滤:</label>
+                        <input type="number" id="city-min-jobs" value="0" min="0">
+                    </div>
+                    <button class="btn" onclick="getCityAnalysis()">获取城市分析</button>
+                    <div class="loading" id="city-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="city-result"></div>
+                </div>
+
+                <div class="api-section">
+                    <h3>城市详细信息</h3>
+                    <p>获取特定城市的详细分析数据</p>
+                    <div class="input-group">
+                        <label>城市名称:</label>
+                        <input type="text" id="city-name" placeholder="例如: 北京" value="北京">
+                    </div>
+                    <button class="btn" onclick="getCityDetail()">获取城市详情</button>
+                    <div class="loading" id="city-detail-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="city-detail-result"></div>
+                </div>
+
+                <div class="api-section">
+                    <h3>城市比较分析</h3>
+                    <p>比较多个城市的数据</p>
+                    <div class="input-group">
+                        <label>城市列表 (用逗号分隔):</label>
+                        <input type="text" id="city-compare" placeholder="例如: 北京,上海,深圳" value="北京,上海,深圳">
+                    </div>
+                    <button class="btn" onclick="compareCities()">比较城市</button>
+                    <div class="loading" id="city-compare-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="city-compare-result"></div>
+                </div>
+            </div>
+
+            <!-- 行业分析 -->
+            <div id="industry" class="tab-content">
+                <h2>🏭 行业分析</h2>
+                
+                <div class="api-section">
+                    <h3>行业招聘分布</h3>
+                    <p>获取各行业的招聘职位分布和平均薪资数据</p>
+                    <div class="input-group">
+                        <label>返回行业数量限制:</label>
+                        <input type="number" id="industry-limit" value="10" min="1" max="1000">
+                    </div>
+                    <div class="input-group">
+                        <label>最小职位数量过滤:</label>
+                        <input type="number" id="industry-min-jobs" value="0" min="0">
+                    </div>
+                    <button class="btn" onclick="getIndustryAnalysis()">获取行业分析</button>
+                    <div class="loading" id="industry-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="industry-result"></div>
+                </div>
+
+                <div class="api-section">
+                    <h3>行业薪资分析</h3>
+                    <p>专门分析各行业的平均薪资水平</p>
+                    <button class="btn" onclick="getIndustrySalary()">获取薪资分析</button>
+                    <div class="loading" id="industry-salary-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="industry-salary-result"></div>
+                </div>
+
+                <div class="api-section">
+                    <h3>行业详细信息</h3>
+                    <p>获取特定行业的详细分析数据</p>
+                    <div class="input-group">
+                        <label>行业名称:</label>
+                        <input type="text" id="industry-name" placeholder="例如: 互联网" value="互联网">
+                    </div>
+                    <button class="btn" onclick="getIndustryDetail()">获取行业详情</button>
+                    <div class="loading" id="industry-detail-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="industry-detail-result"></div>
+                </div>
+            </div>
+
+            <!-- 经验分析 -->
+            <div id="experience" class="tab-content">
+                <h2>👨‍💼 经验分析</h2>
+                
+                <div class="api-section">
+                    <h3>经验要求分布</h3>
+                    <p>获取各经验级别的招聘职位分布和平均薪资数据</p>
+                    <div class="input-group">
+                        <label>返回经验级别数量限制:</label>
+                        <input type="number" id="experience-limit" value="10" min="1" max="1000">
+                    </div>
+                    <div class="input-group">
+                        <label>最小职位数量过滤:</label>
+                        <input type="number" id="experience-min-jobs" value="0" min="0">
+                    </div>
+                    <button class="btn" onclick="getExperienceAnalysis()">获取经验分析</button>
+                    <div class="loading" id="experience-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="experience-result"></div>
+                </div>
+
+                <div class="api-section">
+                    <h3>经验薪资分析</h3>
+                    <p>专门分析各经验级别的平均薪资水平</p>
+                    <button class="btn" onclick="getExperienceSalary()">获取薪资分析</button>
+                    <div class="loading" id="experience-salary-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="experience-salary-result"></div>
+                </div>
+
+                <div class="api-section">
+                    <h3>经验概览数据</h3>
+                    <p>获取经验整体概览信息</p>
+                    <button class="btn" onclick="getExperienceOverview()">获取经验概览</button>
+                    <div class="loading" id="experience-overview-loading">
+                        <div class="spinner"></div>
+                        <p>正在加载数据...</p>
+                    </div>
+                    <div class="result" id="experience-overview-result"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        // 标签页切换
+        function showTab(tabName) {
+            // 隐藏所有标签页内容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 移除所有标签按钮的active类
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的标签页
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // 显示加载状态
+        function showLoading(loadingId) {
+            document.getElementById(loadingId).classList.add('show');
+        }
+
+        // 隐藏加载状态
+        function hideLoading(loadingId) {
+            document.getElementById(loadingId).classList.remove('show');
+        }
+
+        // 显示结果
+        function showResult(resultId, data, isError = false) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        // 通用API请求函数
+        async function apiRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API请求失败:', error);
+                throw error;
+            }
+        }
+
+        // 数据概览
+        async function getOverview() {
+            const loadingId = 'overview-loading';
+            const resultId = 'overview-result';
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/overview`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        // 城市分析
+        async function getCityAnalysis() {
+            const loadingId = 'city-loading';
+            const resultId = 'city-result';
+            const limit = document.getElementById('city-limit').value;
+            const minJobs = document.getElementById('city-min-jobs').value;
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/city?limit=${limit}&min_jobs=${minJobs}`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        async function getCityDetail() {
+            const loadingId = 'city-detail-loading';
+            const resultId = 'city-detail-result';
+            const cityName = document.getElementById('city-name').value;
+            
+            if (!cityName) {
+                showResult(resultId, { error: '请输入城市名称' }, true);
+                return;
+            }
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/city/detail/${encodeURIComponent(cityName)}`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        async function compareCities() {
+            const loadingId = 'city-compare-loading';
+            const resultId = 'city-compare-result';
+            const citiesInput = document.getElementById('city-compare').value;
+            
+            if (!citiesInput) {
+                showResult(resultId, { error: '请输入城市列表' }, true);
+                return;
+            }
+            
+            const cities = citiesInput.split(',').map(city => city.trim()).filter(city => city);
+            
+            if (cities.length < 2) {
+                showResult(resultId, { error: '至少需要2个城市进行比较' }, true);
+                return;
+            }
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/city/compare`, {
+                    method: 'POST',
+                    body: JSON.stringify({ cities })
+                });
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        // 行业分析
+        async function getIndustryAnalysis() {
+            const loadingId = 'industry-loading';
+            const resultId = 'industry-result';
+            const limit = document.getElementById('industry-limit').value;
+            const minJobs = document.getElementById('industry-min-jobs').value;
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/industry?limit=${limit}&min_jobs=${minJobs}`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        async function getIndustrySalary() {
+            const loadingId = 'industry-salary-loading';
+            const resultId = 'industry-salary-result';
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/industry/salary`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        async function getIndustryDetail() {
+            const loadingId = 'industry-detail-loading';
+            const resultId = 'industry-detail-result';
+            const industryName = document.getElementById('industry-name').value;
+            
+            if (!industryName) {
+                showResult(resultId, { error: '请输入行业名称' }, true);
+                return;
+            }
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/industry/detail/${encodeURIComponent(industryName)}`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        // 经验分析
+        async function getExperienceAnalysis() {
+            const loadingId = 'experience-loading';
+            const resultId = 'experience-result';
+            const limit = document.getElementById('experience-limit').value;
+            const minJobs = document.getElementById('experience-min-jobs').value;
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/experience?limit=${limit}&min_jobs=${minJobs}`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        async function getExperienceSalary() {
+            const loadingId = 'experience-salary-loading';
+            const resultId = 'experience-salary-result';
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/experience/salary`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        async function getExperienceOverview() {
+            const loadingId = 'experience-overview-loading';
+            const resultId = 'experience-overview-result';
+            
+            showLoading(loadingId);
+            
+            try {
+                const data = await apiRequest(`${API_BASE}/charts/experience/overview`);
+                hideLoading(loadingId);
+                showResult(resultId, data);
+            } catch (error) {
+                hideLoading(loadingId);
+                showResult(resultId, { error: error.message }, true);
+            }
+        }
+
+        // 页面加载完成后自动获取数据概览
+        window.addEventListener('load', function() {
+            getOverview();
+        });
+    </script>
+</body>
+</html>
+
