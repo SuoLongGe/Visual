@@ -1,0 +1,9 @@
+{
+  "overall_statistics": {
+    "total_records": 430394,
+    "total_cities": 371,
+    "total_companies": 267243,
+    "salary_stats": {
+      "min": 1,
+      "max": 260,
+      "avg": 

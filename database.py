@@ -563,3 +563,70 @@ class DatabaseManager:
                 results[key] = self.execute_query(query, fetch_one=True)
         
         return results
+    
+    def get_experience_education_salary(self) -> List[Tuple]:
+        """获取经验-学历-薪资组合数据，用于三维柱状图"""
+        query = """
+            SELECT 
+                experience,
+                education,
+                AVG((CAST(SUBSTRING_INDEX(salary, '-', 1) AS UNSIGNED) + 
+                     CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(salary, '-', 2), '-', -1) AS UNSIGNED)) / 2) as avg_salary,
+                COUNT(*) as job_count
+            FROM data
+            WHERE experience IS NOT NULL
+            AND education IS NOT NULL
+            AND salary IS NOT NULL
+            AND salary REGEXP '^[0-9]+-[0-9]+'
+            GROUP BY experience, education
+            ORDER BY experience, education
+        """
+        return self.execute_query(query)
+    
+    def get_boxplot_data(self, experience: str = None, education: str = None, 
+                         city: str = None, company_type: str = None) -> List[Tuple]:
+        """
+        获取箱线图数据
+        根据经验、学历、城市、公司类型筛选，返回薪资分布数据
+        """
+        # 构建WHERE条件
+        conditions = []
+        params = []
+        
+        if experience:
+            conditions.append("experience = %s")
+            params.append(experience)
+        
+        if education:
+            conditions.append("education = %s")
+            params.append(education)
+        
+        if city:
+            conditions.append("city = %s")
+            params.append(city)
+        
+        if company_type:
+            conditions.append("company_type = %s")
+            params.append(company_type)
+        
+        # 基础条件：薪资必须有效
+        conditions.append("salary IS NOT NULL")
+        conditions.append("salary REGEXP '^[0-9]+-[0-9]+'")
+        
+        where_clause = " AND ".join(conditions)
+        
+        # 查询薪资数据（用于计算统计量）
+        query = f"""
+            SELECT 
+                city,
+                company_type,
+                (CAST(SUBSTRING_INDEX(salary, '-', 1) AS UNSIGNED) + 
+                 CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(salary, '-', 2), '-', -1) AS UNSIGNED)) / 2 as salary
+            FROM data
+            WHERE {where_clause}
+        """
+        
+        # 如果params是列表，转换为元组（MySQL连接器需要）
+        if params and isinstance(params, list):
+            params = tuple(params)
+        return self.execute_query(query, params=params if params else None)

@@ -27,16 +27,11 @@ def open_frontend():
     print("🌐 打开前端页面...")
     time.sleep(3)  # 等待后端启动
     
-    # 获取当前目录的绝对路径
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    html_file = os.path.join(current_dir, "index.html")
-    
-    # 打开HTML文件
-    if os.path.exists(html_file):
-        webbrowser.open(f"file://{html_file}")
-        print(f"✅ 前端页面已打开: {html_file}")
-    else:
-        print(f"❌ 找不到前端页面文件: {html_file}")
+    # 打开前端开发服务器地址（如果运行）或后端地址
+    url = "http://localhost:3000/"
+    webbrowser.open(url)
+    print(f"✅ 前端页面地址: {url}")
+    print("💡 提示: 请确保前端开发服务器已启动 (cd fronted && npm run dev)")
 
 def main():
     """主函数"""
@@ -46,7 +41,7 @@ def main():
     print()
     
     # 检查必要文件
-    required_files = ["app.py", "index.html"]
+    required_files = ["app.py", "fronted/index.html", "fronted/package.json"]
     missing_files = [f for f in required_files if not os.path.exists(f)]
     
     if missing_files:
@@ -55,7 +50,7 @@ def main():
     
     print("📋 系统检查:")
     print("✅ app.py - 后端API服务")
-    print("✅ index.html - 前端页面")
+    print("✅ fronted/ - 前端项目目录")
     print()
     
     # 在新线程中打开前端页面

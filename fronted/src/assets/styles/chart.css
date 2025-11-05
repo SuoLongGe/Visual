@@ -1,0 +1,124 @@
+/* 图表容器通用样式 */
+.chart-container {
+  width: 100%;
+  height: 600px;
+  margin-top: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  position: relative;
+}
+
+.chart-container svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* D3图表样式 */
+.d3-chart {
+  font-family: 'Microsoft YaHei', Arial, sans-serif;
+}
+
+.d3-chart .axis {
+  font-size: 12px;
+}
+
+.d3-chart .axis path,
+.d3-chart .axis line {
+  fill: none;
+  stroke: #333;
+  shape-rendering: crispEdges;
+}
+
+.d3-chart .axis text {
+  fill: #666;
+}
+
+.d3-chart .grid line {
+  stroke: #e0e0e0;
+  stroke-opacity: 0.7;
+  shape-rendering: crispEdges;
+}
+
+.d3-chart .bar {
+  fill: #667eea;
+  transition: fill 0.3s ease;
+}
+
+.d3-chart .bar:hover {
+  fill: #764ba2;
+}
+
+.d3-chart .line {
+  fill: none;
+  stroke: #667eea;
+  stroke-width: 2px;
+}
+
+.d3-chart .area {
+  fill: #667eea;
+  fill-opacity: 0.3;
+}
+
+.d3-chart .dot {
+  fill: #667eea;
+  stroke: #fff;
+  stroke-width: 2px;
+}
+
+.d3-chart .dot:hover {
+  fill: #764ba2;
+  r: 6;
+}
+
+.d3-chart .tooltip {
+  position: absolute;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 4px;
+  pointer-events: none;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.d3-chart .tooltip.visible {
+  opacity: 1;
+}
+
+/* 图例样式 */
+.legend {
+  font-size: 12px;
+}
+
+.legend-item {
+  display: inline-block;
+  margin-right: 20px;
+  cursor: pointer;
+}
+
+.legend-item .legend-color {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+/* 图表标题 */
+.chart-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+/* 图表说明 */
+.chart-description {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 15px;
+}
+

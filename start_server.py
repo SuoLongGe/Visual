@@ -56,12 +56,11 @@ def open_frontend():
     
     def open_browser():
         time.sleep(3)  # 等待后端启动
-        html_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
-        if os.path.exists(html_file):
-            webbrowser.open(f"file://{html_file}")
-            print(f"🌐 前端页面已打开: {html_file}")
-        else:
-            print("❌ 找不到前端页面文件 index.html")
+        # 前端现在由Vite开发服务器运行
+        url = "http://localhost:3000/"
+        webbrowser.open(url)
+        print(f"🌐 前端页面地址: {url}")
+        print("💡 提示: 请确保前端开发服务器已启动 (cd fronted && npm run dev)")
     
     # 在新线程中打开浏览器
     browser_thread = threading.Thread(target=open_browser)
@@ -84,17 +83,20 @@ def main():
         sys.exit(1)
     
     # 检查前端页面
-    if os.path.exists("index.html"):
-        print("✅ 前端页面文件存在")
+    frontend_index = os.path.join("fronted", "index.html")
+    frontend_package = os.path.join("fronted", "package.json")
+    if os.path.exists(frontend_index) and os.path.exists(frontend_package):
+        print("✅ 前端项目文件存在")
         open_frontend()
     else:
         print("⚠️  前端页面文件不存在，将只启动API服务")
+        print("💡 提示: 前端项目位于 fronted/ 目录，请先启动前端开发服务器")
     
     # 启动服务器
     print("🚀 启动API服务器...")
     print("服务器地址: http://localhost:5000")
     print("API文档: http://localhost:5000/api/overview")
-    print("前端页面: 将自动在浏览器中打开")
+    print("前端页面: http://localhost:3000 (需要单独启动前端开发服务器)")
     print("按 Ctrl+C 停止服务器")
     print("=" * 50)
     
