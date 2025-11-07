@@ -46,6 +46,6 @@ app = create_app()
 
 if __name__ == '__main__':
     print("启动职数洞见API服务...")
-    print("API文档: http://localhost:5000/api/overview")
-    print("城市分析: http://localhost:5000/api/charts/city")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("API文档: http://localhost:5001/api/overview")
+    print("城市分析: http://localhost:5001/api/charts/city")
+    app.run(debug=True, host='0.0.0.0', port=5001)
