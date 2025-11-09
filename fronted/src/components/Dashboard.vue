@@ -20,6 +20,11 @@
         <div v-if="activeTab === '3d-chart'" class="tab-content active">
           <Q3Tab />
         </div>
+
+        <!-- Q5 行业发展动态与新兴职位 -->
+        <div v-if="activeTab === 'q5'" class="tab-content active">
+          <Q5Tab />
+        </div>
       </div>
     </div>
   </div>
@@ -28,11 +33,13 @@
 <script setup>
 import { ref } from 'vue'
 import Q3Tab from './tabs/Q3Tab.vue'
+import Q5Tab from './tabs/Q5Tab.vue'
 
-const activeTab = ref('overview')
+const activeTab = ref('3d-chart')
 
 const tabs = [
-  { id: '3d-chart', label: 'Q3' }
+  { id: '3d-chart', label: 'Q3' },
+  { id: 'q5', label: 'Q5' }
 ]
 </script>
 

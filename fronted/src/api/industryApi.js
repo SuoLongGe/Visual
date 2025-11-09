@@ -32,3 +32,19 @@ export async function getIndustryDetail(industryName) {
   return await apiClient.get(`/charts/industry/detail/${encodeURIComponent(industryName)}`)
 }
 
+/**
+ * 获取职位综合排名柱状图数据
+ * @returns {Promise<Object>} 职位排名数据
+ */
+export async function getJobRanking() {
+  return await apiClient.get('/industry/ranking/jobs')
+}
+
+/**
+ * 获取行业双环嵌套玫瑰图数据
+ * @returns {Promise<Object>} 行业趋势数据
+ */
+export async function getIndustryTrendRose() {
+  return await apiClient.get('/industry/trend/rose')
+}
+

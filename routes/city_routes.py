@@ -5,6 +5,7 @@
 """
 
 import logging
+from urllib.parse import unquote
 from flask import Blueprint, request
 from datetime import datetime
 
@@ -93,10 +94,12 @@ def get_city_analysis():
         return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
 
 
-@city_bp.route('/charts/city/detail/<city_name>', methods=['GET'])
+@city_bp.route('/charts/city/detail/<path:city_name>', methods=['GET'])
 def get_city_detail(city_name):
     """获取特定城市的详细分析数据"""
     try:
+        # 解码URL编码的城市名
+        city_name = unquote(city_name)
         city_detail = city_service.get_city_detail(city_name)
         
         if not city_detail:
