@@ -16,6 +16,11 @@
       <!-- 内容区域 -->
       <div class="content">
 
+        <!-- Q1 职位差异度分析 -->
+        <div v-if="activeTab === 'q1'" class="tab-content active">
+          <Q1Tab />
+        </div>
+
         <!-- 三维柱状图 -->
         <div v-if="activeTab === '3d-chart'" class="tab-content active">
           <Q3Tab />
@@ -27,11 +32,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import Q1Tab from './tabs/Q1Tab.vue'
 import Q3Tab from './tabs/Q3Tab.vue'
 
-const activeTab = ref('overview')
+const activeTab = ref('q1')
 
 const tabs = [
+  { id: 'q1', label: 'Q1' },
   { id: '3d-chart', label: 'Q3' }
 ]
 </script>
