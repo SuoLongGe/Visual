@@ -22,7 +22,15 @@ export function useFetchData(apiFunction) {
       data.value = response
       return response
     } catch (err) {
-      error.value = err.message || '请求失败'
+      // 提取更友好的错误信息
+      const errorMessage = err.message || err.originalError?.message || '请求失败'
+      error.value = errorMessage
+      console.error('数据获取失败:', {
+        error: err,
+        message: errorMessage,
+        status: err.status,
+        data: err.data
+      })
       throw err
     } finally {
       loading.value = false

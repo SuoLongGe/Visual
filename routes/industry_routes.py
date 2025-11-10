@@ -9,6 +9,7 @@ from flask import Blueprint, request
 from datetime import datetime
 
 from services.industry_service import IndustryService
+from services.trend_service import TrendService
 from utils.response import ResponseBuilder
 from utils.validators import RequestValidator
 from database import DatabaseManager
@@ -21,6 +22,7 @@ industry_bp = Blueprint('industry', __name__, url_prefix='/api')
 # 初始化服务
 db_manager = DatabaseManager('default')
 industry_service = IndustryService(db_manager)
+trend_service = TrendService()
 
 
 @industry_bp.route('/charts/industry', methods=['GET'])
@@ -261,4 +263,63 @@ def get_industry_salary_analysis():
         
     except Exception as e:
         logger.error(f"获取行业薪资分析数据失败: {e}")
+        return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
+
+
+@industry_bp.route('/industry/ranking/jobs', methods=['GET'])
+def get_job_ranking():
+    """获取职位综合排名柱状图数据"""
+    try:
+        # 获取职位排名数据（默认返回前5名）
+        job_rankings = trend_service.get_job_ranking(top_n=5)
+        
+        # 转换为字典格式
+        jobs_data = [
+            {
+                "job_title": job.job_title,
+                "records_count_norm": job.records_count_norm,
+                "education_rank": job.education_rank,
+                "experience_rank": job.experience_rank,
+                "composite_score": job.composite_score
+            }
+            for job in job_rankings
+        ]
+        
+        return ResponseBuilder.success("获取职位综合排名数据成功", {"jobs": jobs_data})
+        
+    except FileNotFoundError as e:
+        logger.error(f"文件未找到: {e}")
+        return ResponseBuilder.not_found(f"数据文件不存在: {str(e)}")
+    except Exception as e:
+        logger.error(f"获取职位综合排名数据失败: {e}")
+        return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
+
+
+@industry_bp.route('/industry/trend/rose', methods=['GET'])
+def get_industry_trend_rose():
+    """获取行业双环嵌套玫瑰图数据"""
+    try:
+        # 获取行业趋势数据
+        industry_trends = trend_service.get_industry_trend_rose()
+        
+        # 转换为字典格式
+        industries_data = [
+            {
+                "company_type": industry.company_type,
+                "industry_name": industry.industry_name,  # 添加可读的行业名称
+                "national_job_count": industry.national_job_count,
+                "avg_median_salary": industry.avg_median_salary,
+                "avg_experience_rank": industry.avg_experience_rank,
+                "avg_education_rank": industry.avg_education_rank
+            }
+            for industry in industry_trends
+        ]
+        
+        return ResponseBuilder.success("获取行业趋势玫瑰图数据成功", {"industries": industries_data})
+        
+    except FileNotFoundError as e:
+        logger.error(f"文件未找到: {e}")
+        return ResponseBuilder.not_found(f"数据文件不存在: {str(e)}")
+    except Exception as e:
+        logger.error(f"获取行业趋势玫瑰图数据失败: {e}")
         return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
