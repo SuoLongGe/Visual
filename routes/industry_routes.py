@@ -22,7 +22,7 @@ industry_bp = Blueprint('industry', __name__, url_prefix='/api')
 # 初始化服务
 db_manager = DatabaseManager('default')
 industry_service = IndustryService(db_manager)
-trend_service = TrendService()
+trend_service = TrendService(db_manager=db_manager)
 
 
 @industry_bp.route('/charts/industry', methods=['GET'])
@@ -310,7 +310,17 @@ def get_industry_trend_rose():
                 "national_job_count": industry.national_job_count,
                 "avg_median_salary": industry.avg_median_salary,
                 "avg_experience_rank": industry.avg_experience_rank,
-                "avg_education_rank": industry.avg_education_rank
+                "avg_education_rank": industry.avg_education_rank,
+                # 原始 10 分制字段（直接用于前端展示）
+                "avg_experience_rank_10": industry.avg_experience_rank_10,
+                "avg_education_rank_10": industry.avg_education_rank_10,
+                # 直接使用后端服务基于本次结果集的 min-max 归一化结果（0~1）
+                "avg_experience_rank_normalized": industry.avg_experience_rank_normalized,
+                "avg_education_rank_normalized": industry.avg_education_rank_normalized,
+                # 外环颜色与分档（由服务层根据经验 10 分制分档得出）
+                "outer_ring_bucket": getattr(industry, "outer_ring_bucket", None),
+                "outer_ring_color": getattr(industry, "outer_ring_color", None),
+                "outer_ring_norm": getattr(industry, "outer_ring_norm", None),
             }
             for industry in industry_trends
         ]

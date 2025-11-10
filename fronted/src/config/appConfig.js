@@ -7,7 +7,7 @@ export const appConfig = {
     // 使用相对路径，通过 Vite 代理访问后端
     // 如果需要直接访问，可以设置为 'http://localhost:5000/api'
     baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-    timeout: 50000  // 增加到30秒，因为读取Excel文件可能需要较长时间
+    timeout: 70000  // 增加到50秒，因为读取Excel文件可能需要较长时间
   },
   
   // 主题配置
