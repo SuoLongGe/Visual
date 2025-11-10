@@ -7,7 +7,7 @@
 
 import logging
 from flask import Blueprint, request
-from database import DatabaseManager
+from database.Q3 import DatabaseManager
 from utils.response import ResponseBuilder
 from services.salary_3d_service import Salary3DService
 

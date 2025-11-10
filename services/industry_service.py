@@ -5,15 +5,14 @@
 """
 
 import logging
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import List, Optional, Dict
 
 from models.industry import (
     IndustryStatistics, IndustryDetail, IndustryComparison,
     IndustrySalaryDistribution, IndustryCityDistribution, IndustryExperienceDistribution,
     IndustryOverview
 )
-from database import DatabaseManager
+from database.Q3 import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

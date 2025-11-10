@@ -12,7 +12,7 @@ from datetime import datetime
 from services.city_service import CityService
 from utils.response import ResponseBuilder
 from utils.validators import RequestValidator
-from database import DatabaseManager
+from database.Q3 import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

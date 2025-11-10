@@ -44,7 +44,7 @@ npm run dev
 ```bash
 python app.py
 ```
-后端将在 `http://localhost:5000` 启动
+后端将在 `http://localhost:5001` 启动
 
 #### 方式二：使用启动脚本（推荐生产环境）
 

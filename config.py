@@ -10,13 +10,13 @@ class Config:
     DB_HOST = os.getenv('DB_HOST', 'localhost')
     DB_PORT = int(os.getenv('DB_PORT', 3306))
     DB_USER = os.getenv('DB_USER', 'root')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', 'hjy89607425')  # 请根据实际情况修改
-    DB_NAME = os.getenv('DB_NAME', 'visual')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '123456')  # 请根据实际情况修改
+    DB_NAME = os.getenv('DB_NAME', 'vision')
     DB_CHARSET = 'utf8mb4'
     
     # API配置
     API_HOST = os.getenv('API_HOST', '0.0.0.0')
-    API_PORT = int(os.getenv('API_PORT', 5000))
+    API_PORT = int(os.getenv('API_PORT', 5001))
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     
     # 日志配置

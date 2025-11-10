@@ -47,7 +47,7 @@ const activeTab = ref('q1')
 
 const tabs = [
   { id: 'q1', label: 'Q1' },
-  { id: '3d-chart', label: 'Q3' }
+  { id: '3d-chart', label: 'Q3' },
   { id: 'q5', label: 'Q5' }
 ]
 </script>

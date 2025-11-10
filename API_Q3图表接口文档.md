@@ -6,7 +6,7 @@
 
 **版本**: v1.0  
 **最后更新**: 2025-01-XX  
-**基础URL**: `http://localhost:5000/api`
+**基础URL**: `http://localhost:5001/api`
 
 ---
 
@@ -36,17 +36,17 @@
 
 ```bash
 # cURL
-curl -X GET "http://localhost:5000/api/charts/3d/experience-education-salary"
+curl -X GET "http://localhost:5001/api/charts/3d/experience-education-salary"
 
 # JavaScript (fetch)
-fetch('http://localhost:5000/api/charts/3d/experience-education-salary')
+fetch('http://localhost:5001/api/charts/3d/experience-education-salary')
   .then(response => response.json())
   .then(data => console.log(data))
   .catch(error => console.error('Error:', error))
 
 # Python (requests)
 import requests
-response = requests.get('http://localhost:5000/api/charts/3d/experience-education-salary')
+response = requests.get('http://localhost:5001/api/charts/3d/experience-education-salary')
 data = response.json()
 ```
 
@@ -179,13 +179,13 @@ data = response.json()
 
 ```bash
 # cURL - 基础请求（仅经验和学历）
-curl -X GET "http://localhost:5000/api/charts/boxplot/salary-distribution?experience=1-3年&education=本科"
+curl -X GET "http://localhost:5001/api/charts/boxplot/salary-distribution?experience=1-3年&education=本科"
 
 # cURL - 带城市筛选
-curl -X GET "http://localhost:5000/api/charts/boxplot/salary-distribution?experience=1-3年&education=本科&city=北京"
+curl -X GET "http://localhost:5001/api/charts/boxplot/salary-distribution?experience=1-3年&education=本科&city=北京"
 
 # cURL - 带公司类型筛选
-curl -X GET "http://localhost:5000/api/charts/boxplot/salary-distribution?experience=1-3年&education=本科&company_type=上市公司"
+curl -X GET "http://localhost:5001/api/charts/boxplot/salary-distribution?experience=1-3年&education=本科&company_type=上市公司"
 
 # JavaScript (fetch)
 const params = new URLSearchParams({
@@ -194,7 +194,7 @@ const params = new URLSearchParams({
   city: '北京'  // 可选
 })
 
-fetch(`http://localhost:5000/api/charts/boxplot/salary-distribution?${params}`)
+fetch(`http://localhost:5001/api/charts/boxplot/salary-distribution?${params}`)
   .then(response => response.json())
   .then(data => console.log(data))
   .catch(error => console.error('Error:', error))
@@ -419,7 +419,7 @@ data = response.json()
 // JavaScript示例
 async function load3DChart() {
   try {
-    const response = await fetch('http://localhost:5000/api/charts/3d/experience-education-salary')
+    const response = await fetch('http://localhost:5001/api/charts/3d/experience-education-salary')
     const result = await response.json()
     
     if (result.code === 200) {
@@ -450,7 +450,7 @@ async function loadBoxplot(experience, education) {
   
   try {
     const response = await fetch(
-      `http://localhost:5000/api/charts/boxplot/salary-distribution?${params}`
+      `http://localhost:5001/api/charts/boxplot/salary-distribution?${params}`
     )
     const result = await response.json()
     

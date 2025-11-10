@@ -94,8 +94,8 @@ def main():
     
     # 启动服务器
     print("🚀 启动API服务器...")
-    print("服务器地址: http://localhost:5000")
-    print("API文档: http://localhost:5000/api/overview")
+    print("服务器地址: http://localhost:5001")
+    print("API文档: http://localhost:5001/api/overview")
     print("前端页面: http://localhost:3000 (需要单独启动前端开发服务器)")
     print("按 Ctrl+C 停止服务器")
     print("=" * 50)
@@ -103,7 +103,7 @@ def main():
     try:
         # 启动Flask应用
         from app import app
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=True, host='0.0.0.0', port=5001)
     except KeyboardInterrupt:
         print("\n👋 服务器已停止，感谢使用！")
     except Exception as e:
