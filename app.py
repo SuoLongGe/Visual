@@ -13,6 +13,8 @@ from routes.city_routes import city_bp
 from routes.industry_routes import industry_bp
 from routes.experience_routes import experience_bp
 from routes.salary_3d_routes import salary_3d_bp
+from routes.q1_routes import q1_bp
+from routes.industry_stats_routes import industry_stats_bp
 from utils.response import ResponseBuilder
 
 # 配置日志
@@ -29,6 +31,8 @@ def create_app():
     app.register_blueprint(industry_bp)
     app.register_blueprint(experience_bp)
     app.register_blueprint(salary_3d_bp)
+    app.register_blueprint(q1_bp)
+    app.register_blueprint(industry_stats_bp)
     
     # 注册错误处理器
     @app.errorhandler(404)
