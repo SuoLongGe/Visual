@@ -80,8 +80,8 @@ const renderChart = () => {
   // 清除旧图表
   d3.select(container).selectAll('*').remove()
 
-  // 设置边距
-  const margin = { top: 40, right: 80, bottom: 120, left: 200 }
+  // 设置边距（缩小间距）
+  const margin = { top: 30, right: 60, bottom: 80, left: 150 }
   const chartWidth = containerWidth - margin.left - margin.right
   const chartHeight = containerHeight - margin.top - margin.bottom
 
@@ -95,10 +95,10 @@ const renderChart = () => {
     .attr('transform', `translate(${margin.left},${margin.top})`)
 
   // 创建X轴比例尺（用于格子图标布局，0-10个格子）
+  // 10稍微比10个icon大一点，所以用10.2作为最大值
   xScale = d3.scaleLinear()
-    .domain([0, 10])
+    .domain([0, 10.2])
     .range([0, chartWidth])
-    .nice()
 
   // 创建Y轴比例尺（职位名称）
   yScale = d3.scaleBand()
@@ -111,11 +111,15 @@ const renderChart = () => {
   const barHeight = jobHeight * 0.25  // 每条行的高度
   const barSpacing = jobHeight * 0.05  // 行之间的间距
 
-  // 添加X轴（显示格子数量）
+  // 添加X轴（只显示0和10两个刻度）
+  const xAxis = d3.axisBottom(xScale)
+    .tickValues([0, 10])
+    .tickFormat(d => String(d))
+  
   g.append('g')
     .attr('class', 'axis')
     .attr('transform', `translate(0,${chartHeight})`)
-    .call(d3.axisBottom(xScale).ticks(11).tickFormat(d => d))
+    .call(xAxis)
   
   // 添加X轴标签
   g.append('text')
@@ -125,7 +129,7 @@ const renderChart = () => {
     .attr('fill', '#666')
     .attr('font-size', '12px')
     .attr('text-anchor', 'middle')
-    .text('格子数量 (0-10)')
+    .text('格子数量')
 
   // 添加Y轴
   g.append('g')
@@ -135,23 +139,38 @@ const renderChart = () => {
     .style('font-size', '12px')
     .style('fill', '#333')
 
-  // 添加网格线
-  g.append('g')
+  // 添加网格线（只显示0和10位置的网格线）
+  const gridLines = g.append('g')
     .attr('class', 'grid')
     .attr('transform', `translate(0,${chartHeight})`)
-    .call(d3.axisBottom(xScale).ticks(5).tickSize(-chartHeight).tickFormat(''))
+  
+  // 只添加0和10位置的网格线
+  gridLines.selectAll('.grid-line')
+    .data([0, 10])
+    .enter()
+    .append('line')
+    .attr('class', 'grid-line')
+    .attr('x1', d => xScale(d))
+    .attr('x2', d => xScale(d))
+    .attr('y1', 0)
+    .attr('y2', -chartHeight)
+    .attr('stroke', '#e0e0e0')
+    .attr('stroke-width', 1)
+    .attr('stroke-dasharray', '3,3')
 
   // 定义三种柱子的颜色和图标类型
   const barConfigs = [
-    { key: 'records_count_norm', label: '招聘数量', color: '#5470c6', icon: 'person' },
-    { key: 'education_rank', label: '学历要求', color: '#91cc75', icon: 'education' },
-    { key: 'experience_rank', label: '经验要求', color: '#fac858', icon: 'experience' }
+    { key: 'records_count_norm', color: '#5470c6', icon: 'person' },
+    { key: 'education_rank', color: '#91cc75', icon: 'education' },
+    { key: 'experience_rank', color: '#fac858', icon: 'experience' }
   ]
 
   // 格子图标配置
-  const iconSize = 20  // 每个图标的大小
-  const iconSpacing = 4  // 图标之间的间距
+  // 计算让10个icon铺满整个宽度（稍微超出一点到10.2的位置）
   const maxIconsPerRow = 10  // 每行最多显示10个图标
+  const totalIconsWidth = chartWidth  // 10个icon要铺满整个宽度
+  const iconSpacing = totalIconsWidth * 0.02  // 图标之间的间距（2%的宽度）
+  const iconSize = (totalIconsWidth - iconSpacing * (maxIconsPerRow - 1)) / maxIconsPerRow  // 计算每个图标的大小
 
   // 为每个职位绘制三条格子图标行
   props.data.forEach((job, jobIndex) => {
@@ -187,7 +206,7 @@ const renderChart = () => {
 
       // 绘制格子图标
       const iconCenterY = barY + barHeight / 2
-      const startX = 10  // 起始X位置
+      const startX = 0  // 起始X位置从0开始
       
       for (let i = 0; i < gridCount && i < maxIconsPerRow; i++) {
         const iconX = startX + i * (iconSize + iconSpacing)
@@ -212,10 +231,12 @@ const renderChart = () => {
           .attr('stroke-opacity', 0.3)
 
         // 绘制图标（居中显示）
+        // 根据iconSize动态调整缩放比例，使图标填满背景框
+        const iconScale = iconSize / 24  // 24是原始图标大小基准
         iconGroup.append('path')
           .attr('d', createIconPath(config.icon))
           .attr('fill', config.color)
-          .attr('transform', `scale(0.55) translate(-11, -11)`)
+          .attr('transform', `scale(${iconScale * 0.7}) translate(-11, -11)`)
           .style('opacity', 0.95)
 
         // 添加交互：鼠标悬浮单个图标
@@ -232,11 +253,12 @@ const renderChart = () => {
               .attr('stroke-width', 1.5)
               .attr('stroke-opacity', 0.6)
             
+            const iconScale = iconSize / 24
             path
               .transition()
               .duration(150)
               .attr('opacity', 1)
-              .attr('transform', `scale(0.65) translate(-11, -11)`)
+              .attr('transform', `scale(${iconScale * 0.8}) translate(-11, -11)`)
 
             // 显示提示框
             const tooltip = d3.select('body').append('div')
@@ -253,7 +275,7 @@ const renderChart = () => {
               .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)')
               .html(`
                 <div style="font-weight: 600; margin-bottom: 6px;">${job.job_title}</div>
-                <div style="margin-bottom: 4px;">${config.label}: ${d3.format('.3f')(value)}</div>
+                <div style="margin-bottom: 4px;">数值: ${d3.format('.3f')(value)}</div>
                 <div style="margin-bottom: 4px;">格子数量: ${gridCount} / 10</div>
                 <div style="color: #aaa; font-size: 11px;">综合得分: ${d3.format('.3f')(job.composite_score || 0)}</div>
               `)
@@ -276,11 +298,12 @@ const renderChart = () => {
               .attr('stroke-width', 0.5)
               .attr('stroke-opacity', 0.3)
             
+            const iconScale = iconSize / 24
             path
               .transition()
               .duration(150)
               .attr('opacity', 0.95)
-              .attr('transform', `scale(0.55) translate(-11, -11)`)
+              .attr('transform', `scale(${iconScale * 0.7}) translate(-11, -11)`)
 
             d3.selectAll('.tooltip').remove()
           })
@@ -302,10 +325,10 @@ const renderChart = () => {
       // 添加数值标签（在行右侧）
       g.append('text')
         .attr('class', 'bar-label')
-        .attr('x', chartWidth - 10)
+        .attr('x', chartWidth + 8)
         .attr('y', iconCenterY)
         .attr('dy', '0.35em')
-        .attr('text-anchor', 'end')
+        .attr('text-anchor', 'start')
         .attr('fill', '#666')
         .attr('font-size', '11px')
         .attr('font-weight', '500')
@@ -313,28 +336,7 @@ const renderChart = () => {
     })
   })
 
-  // 添加图例
-  const legend = g.append('g')
-    .attr('class', 'legend')
-    .attr('transform', `translate(${chartWidth - 150}, 10)`)
-
-  barConfigs.forEach((config, index) => {
-    const legendItem = legend.append('g')
-      .attr('transform', `translate(0, ${index * 25})`)
-
-    legendItem.append('rect')
-      .attr('width', 15)
-      .attr('height', 15)
-      .attr('fill', config.color)
-      .attr('rx', 2)
-
-    legendItem.append('text')
-      .attr('x', 20)
-      .attr('y', 12)
-      .attr('font-size', '12px')
-      .attr('fill', '#333')
-      .text(config.label)
-  })
+  // 图例已移除：不再显示“招聘数量 / 学历要求 / 经验要求”文字说明
 }
 
 // 监听数据变化
