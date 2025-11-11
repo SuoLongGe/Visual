@@ -10,7 +10,7 @@ import os
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from functools import lru_cache
-from database import DatabaseManager
+from database.Q3 import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
