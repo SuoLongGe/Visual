@@ -124,13 +124,24 @@ class Q1Service:
         for row in results:
             job_title = row[0]
             experience = row[1]
-            experience_rank = row[2] if row[2] is not None else 5
+            # 确保 experience_rank 和 education_rank 是数字类型
+            try:
+                experience_rank = int(row[2]) if row[2] is not None else 5
+            except (ValueError, TypeError):
+                experience_rank = 5
             education = row[3]
-            education_rank = row[4] if row[4] is not None else 5
+            try:
+                education_rank = int(row[4]) if row[4] is not None else 5
+            except (ValueError, TypeError):
+                education_rank = 5
             salary = row[5]
             job_level = row[6]
             company_type = row[7]
-            recruit_count = row[8]
+            # 确保 recruit_count 是数字类型
+            try:
+                recruit_count = int(row[8]) if row[8] is not None else 0
+            except (ValueError, TypeError):
+                recruit_count = 0
             city_level = row[9]
             
             salary_value = self._parse_salary(salary)
