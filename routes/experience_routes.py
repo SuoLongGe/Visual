@@ -11,7 +11,7 @@ from datetime import datetime
 from services.experience_service import ExperienceService
 from utils.response import ResponseBuilder
 from utils.validators import RequestValidator
-from database import DatabaseManager
+from database.Q3 import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

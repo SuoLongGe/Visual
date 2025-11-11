@@ -5,10 +5,10 @@
 用于处理三维柱状图和箱线图相关的业务逻辑
 """
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import statistics
 
-from database import DatabaseManager
+from database.Q3 import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

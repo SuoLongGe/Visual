@@ -4,7 +4,7 @@
 城市相关业务逻辑服务
 """
 import logging
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from datetime import datetime
 
 from models.city import (
@@ -12,7 +12,7 @@ from models.city import (
     CitySalaryDistribution, CityIndustryDistribution, CityExperienceDistribution,
     OverviewData
 )
-from database import DatabaseManager
+from database.Q3 import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

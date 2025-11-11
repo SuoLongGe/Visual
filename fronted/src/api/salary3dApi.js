@@ -42,3 +42,15 @@ export async function getBoxplotData(filters = {}) {
   return await apiClient.get(url)
 }
 
+/**
+ * 获取雷达气泡图数据
+ * @returns {Promise<Object>} 雷达气泡图数据
+ */
+export async function getRadarBubbleData() {
+  return await apiClient.get('/charts/radar-bubble')
+}
+
+export async function getParallelCoordinatesData() {
+  return await apiClient.get('/charts/parallel-coordinates')
+}
+

@@ -12,7 +12,7 @@ from services.industry_service import IndustryService
 from services.trend_service import TrendService
 from utils.response import ResponseBuilder
 from utils.validators import RequestValidator
-from database import DatabaseManager
+from database.Q3 import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
