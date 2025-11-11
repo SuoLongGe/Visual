@@ -10,6 +10,7 @@ from flask import Blueprint, request
 from database.Q3 import DatabaseManager
 from utils.response import ResponseBuilder
 from services.salary_3d_service import Salary3DService
+from services.radar_bubble_service import RadarBubbleService
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ salary_3d_bp = Blueprint('salary_3d', __name__, url_prefix='/api')
 # 初始化数据库管理器和服务
 db_manager = DatabaseManager('default')
 salary_3d_service = Salary3DService(db_manager)
+radar_bubble_service = RadarBubbleService(db_manager)
 
 
 @salary_3d_bp.route('/charts/3d/experience-education-salary', methods=['GET'])
@@ -45,9 +47,22 @@ def get_experience_education_salary_3d():
                 'job_count': job_count
             }
         
-        # 排序经验和学历列表
-        experience_list = sorted(list(experience_set))
-        education_list = sorted(list(education_set))
+        # 排序经验和学历列表（按逻辑顺序）
+        experience_order = [
+            '无经验', '1年以下', '应届毕业生', '1-3年', '3-5年', 
+            '5-7年', '7-10年', '10年以上', '未知'
+        ]
+        education_order = [
+            '小学以下', '小学', '初中', '高中/中专', '大专', 
+            '本科', '硕士', '博士', '博士后', '未知'
+        ]
+        
+        experience_list = sorted(list(experience_set), key=lambda x: (
+            experience_order.index(x) if x in experience_order else len(experience_order)
+        ))
+        education_list = sorted(list(education_set), key=lambda x: (
+            education_order.index(x) if x in education_order else len(education_order)
+        ))
         
         # 构建三维数据数组 [x, y, z]
         # x: 经验索引, y: 学历索引, z: 平均薪资
@@ -114,6 +129,34 @@ def get_boxplot_data():
         
     except Exception as e:
         logger.error(f"获取箱线图数据失败: {e}", exc_info=True)
+        return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
+
+
+@salary_3d_bp.route('/charts/radar-bubble', methods=['GET'])
+def get_radar_bubble_data():
+    """获取雷达气泡图数据"""
+    try:
+        # 获取雷达气泡图统计数据
+        radar_data = radar_bubble_service.get_radar_bubble_statistics()
+        
+        return ResponseBuilder.success("获取雷达气泡图数据成功", radar_data)
+        
+    except Exception as e:
+        logger.error(f"获取雷达气泡图数据失败: {e}", exc_info=True)
+        return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
+
+
+@salary_3d_bp.route('/charts/parallel-coordinates', methods=['GET'])
+def get_parallel_coordinates_data():
+    """获取平行坐标图数据"""
+    try:
+        # 获取平行坐标图统计数据
+        parallel_data = radar_bubble_service.get_parallel_coordinates_statistics()
+        
+        return ResponseBuilder.success("获取平行坐标图数据成功", parallel_data)
+        
+    except Exception as e:
+        logger.error(f"获取平行坐标图数据失败: {e}", exc_info=True)
         return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
 
 

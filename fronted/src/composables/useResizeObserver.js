@@ -22,22 +22,47 @@ export function useResizeObserver(target) {
   }
 
   onMounted(() => {
-    const element = target.value || target
-    if (!element) return
+    // 延迟初始化，确保元素已经渲染
+    const initObserver = () => {
+      const element = target.value || target
+      if (!element || !(element instanceof Element)) {
+        // 如果元素还未渲染，延迟重试（最多重试10次）
+        let retryCount = 0
+        const maxRetries = 10
+        const retry = () => {
+          retryCount++
+          if (retryCount < maxRetries) {
+            setTimeout(() => {
+              const el = target.value || target
+              if (el && el instanceof Element) {
+                initObserver()
+              } else {
+                retry()
+              }
+            }, 100)
+          }
+        }
+        retry()
+        return
+      }
 
-    // 初始设置
-    updateSize()
+      // 初始设置
+      updateSize()
 
-    // 使用ResizeObserver监听大小变化
-    if (window.ResizeObserver) {
-      resizeObserver = new ResizeObserver(() => {
-        updateSize()
-      })
-      resizeObserver.observe(element)
-    } else {
-      // 降级方案：使用window resize事件
-      window.addEventListener('resize', updateSize)
+      // 使用ResizeObserver监听大小变化
+      if (window.ResizeObserver) {
+        resizeObserver = new ResizeObserver(() => {
+          updateSize()
+        })
+        resizeObserver.observe(element)
+      } else {
+        // 降级方案：使用window resize事件
+        window.addEventListener('resize', updateSize)
+      }
     }
+    
+    // 延迟初始化，确保 DOM 已更新
+    setTimeout(initObserver, 0)
   })
 
   onUnmounted(() => {

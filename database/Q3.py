@@ -565,20 +565,27 @@ class DatabaseManager:
         return results
     
     def get_experience_education_salary(self) -> List[Tuple]:
-        """获取经验-学历-薪资组合数据，用于三维柱状图"""
+        """
+        获取经验-学历-薪资组合数据，用于三维柱状图
+        使用映射表将编码转换为中文标签
+        """
         query = """
             SELECT 
-                experience,
-                education,
-                AVG((CAST(SUBSTRING_INDEX(salary, '-', 1) AS UNSIGNED) + 
-                     CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(salary, '-', 2), '-', -1) AS UNSIGNED)) / 2) as avg_salary,
+                COALESCE(exp_mapping.experience_label, d.experience, '未知') as experience,
+                COALESCE(edu_mapping.education_label, d.education, '未知') as education,
+                AVG(COALESCE(d.median_annual_salary,
+                    (CAST(SUBSTRING_INDEX(d.salary, '-', 1) AS UNSIGNED) + 
+                     CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(d.salary, '-', 2), '-', -1) AS UNSIGNED)) / 2)) as avg_salary,
                 COUNT(*) as job_count
-            FROM data
-            WHERE experience IS NOT NULL
-            AND education IS NOT NULL
-            AND salary IS NOT NULL
-            AND salary REGEXP '^[0-9]+-[0-9]+'
-            GROUP BY experience, education
+            FROM data d
+            LEFT JOIN experience_mapping exp_mapping ON d.experience = exp_mapping.experience_code
+            LEFT JOIN education_mapping edu_mapping ON d.education = edu_mapping.education_code
+            WHERE d.experience IS NOT NULL
+            AND d.education IS NOT NULL
+            AND (d.median_annual_salary IS NOT NULL OR 
+                 (d.salary IS NOT NULL AND d.salary REGEXP '^[0-9]+-[0-9]+'))
+            GROUP BY COALESCE(exp_mapping.experience_label, d.experience, '未知'),
+                     COALESCE(edu_mapping.education_label, d.education, '未知')
             ORDER BY experience, education
         """
         return self.execute_query(query)
@@ -588,41 +595,68 @@ class DatabaseManager:
         """
         获取箱线图数据
         根据经验、学历、城市、公司类型筛选，返回薪资分布数据
+        注意：experience和education参数应该是映射后的中文标签，需要先转换为编码进行筛选
         """
         # 构建WHERE条件
         conditions = []
         params = []
         
+        # 处理经验和学历筛选：如果传入的是中文标签，需要先查找对应的编码
         if experience:
-            conditions.append("experience = %s")
-            params.append(experience)
+            # 先查找经验编码
+            exp_code_query = """
+                SELECT experience_code FROM experience_mapping 
+                WHERE experience_label = %s LIMIT 1
+            """
+            exp_result = self.execute_query(exp_code_query, params=(experience,))
+            if exp_result and len(exp_result) > 0:
+                conditions.append("d.experience = %s")
+                params.append(exp_result[0][0])
+            else:
+                # 如果找不到映射，直接使用原值（可能是编码）
+                conditions.append("COALESCE(exp_mapping.experience_label, d.experience, '未知') = %s")
+                params.append(experience)
         
         if education:
-            conditions.append("education = %s")
-            params.append(education)
+            # 先查找学历编码
+            edu_code_query = """
+                SELECT education_code FROM education_mapping 
+                WHERE education_label = %s LIMIT 1
+            """
+            edu_result = self.execute_query(edu_code_query, params=(education,))
+            if edu_result and len(edu_result) > 0:
+                conditions.append("d.education = %s")
+                params.append(edu_result[0][0])
+            else:
+                # 如果找不到映射，直接使用原值（可能是编码）
+                conditions.append("COALESCE(edu_mapping.education_label, d.education, '未知') = %s")
+                params.append(education)
         
         if city:
-            conditions.append("city = %s")
+            conditions.append("d.city = %s")
             params.append(city)
         
         if company_type:
-            conditions.append("company_type = %s")
+            conditions.append("d.company_type = %s")
             params.append(company_type)
         
         # 基础条件：薪资必须有效
-        conditions.append("salary IS NOT NULL")
-        conditions.append("salary REGEXP '^[0-9]+-[0-9]+'")
+        conditions.append("(d.median_annual_salary IS NOT NULL OR (d.salary IS NOT NULL AND d.salary REGEXP '^[0-9]+-[0-9]+'))")
         
         where_clause = " AND ".join(conditions)
         
         # 查询薪资数据（用于计算统计量）
+        # 注意：这里返回的是原始数据，用于计算统计量，不需要映射
         query = f"""
             SELECT 
-                city,
-                company_type,
-                (CAST(SUBSTRING_INDEX(salary, '-', 1) AS UNSIGNED) + 
-                 CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(salary, '-', 2), '-', -1) AS UNSIGNED)) / 2 as salary
-            FROM data
+                d.city,
+                d.company_type,
+                COALESCE(d.median_annual_salary,
+                    (CAST(SUBSTRING_INDEX(d.salary, '-', 1) AS UNSIGNED) + 
+                     CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(d.salary, '-', 2), '-', -1) AS UNSIGNED)) / 2) as salary
+            FROM data d
+            LEFT JOIN experience_mapping exp_mapping ON d.experience = exp_mapping.experience_code
+            LEFT JOIN education_mapping edu_mapping ON d.education = edu_mapping.education_code
             WHERE {where_clause}
         """
         
@@ -630,3 +664,62 @@ class DatabaseManager:
         if params and isinstance(params, list):
             params = tuple(params)
         return self.execute_query(query, params=params if params else None)
+    
+    def get_radar_bubble_data(self) -> List[Tuple]:
+        """
+        获取雷达气泡图数据
+        返回每个经验等级下，各城市的岗位数量、平均薪资、岗位类型分布等信息
+        用于计算香农熵和绘制雷达气泡图
+        """
+        query = """
+            SELECT 
+                experience,
+                city,
+                COUNT(*) as job_count,
+                AVG(COALESCE(median_annual_salary, 
+                    (CAST(SUBSTRING_INDEX(salary, '-', 1) AS UNSIGNED) + 
+                     CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(salary, '-', 2), '-', -1) AS UNSIGNED)) / 2)) as avg_salary,
+                GROUP_CONCAT(DISTINCT job_title ORDER BY job_title SEPARATOR ',') as job_titles
+            FROM data
+            WHERE experience IS NOT NULL
+            AND city IS NOT NULL
+            AND (median_annual_salary IS NOT NULL OR 
+                 (salary IS NOT NULL AND salary REGEXP '^[0-9]+-[0-9]+'))
+            GROUP BY experience, city
+            ORDER BY experience, job_count DESC
+        """
+        return self.execute_query(query)
+    
+    def get_parallel_coordinates_data(self) -> List[Tuple]:
+        """
+        获取平行坐标图数据
+        返回包含城市、经验、学历、薪资、公司类型、岗位多样性等所有维度的数据
+        用于绘制平行坐标图
+        使用映射表将编码转换为中文标签，确保所有经验等级和学历要求都包含在内
+        
+        注意：直接使用数据表中的 shannon_entropy 字段，不再计算
+        """
+        query = """
+            SELECT 
+                COALESCE(d.city, '未知') as city,
+                COALESCE(exp_mapping.experience_label, d.experience, '未知') as experience,
+                COALESCE(edu_mapping.education_label, d.education, '未知') as education,
+                COALESCE(d.company_type, '未知') as company_type,
+                AVG(COALESCE(d.median_annual_salary, 
+                    (CAST(SUBSTRING_INDEX(d.salary, '-', 1) AS UNSIGNED) + 
+                     CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(d.salary, '-', 2), '-', -1) AS UNSIGNED)) / 2)) as avg_salary,
+                AVG(COALESCE(d.shannon_entropy, 0)) as avg_shannon_entropy,
+                COUNT(*) as job_count
+            FROM data d
+            LEFT JOIN experience_mapping exp_mapping ON d.experience = exp_mapping.experience_code
+            LEFT JOIN education_mapping edu_mapping ON d.education = edu_mapping.education_code
+            WHERE (d.median_annual_salary IS NOT NULL OR 
+                 (d.salary IS NOT NULL AND d.salary REGEXP '^[0-9]+-[0-9]+'))
+            GROUP BY d.city, 
+                     COALESCE(exp_mapping.experience_label, d.experience, '未知'), 
+                     COALESCE(edu_mapping.education_label, d.education, '未知'), 
+                     COALESCE(d.company_type, '未知')
+            ORDER BY job_count DESC
+            LIMIT 1000
+        """
+        return self.execute_query(query)
