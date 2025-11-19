@@ -101,6 +101,79 @@ def test_industry_trend_rose():
     except Exception as e:
         print(f"\n[错误] 测试失败: {e}")
 
+def test_sankey_all():
+    """测试桑基图接口 - 整体模式"""
+    print("\n[测试] 接口: 获取桑基图数据 (整体模式)")
+    url = f"{BASE_URL}/positions/sankey?mode=all"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        print_response(response, "桑基图数据 (整体模式)")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('code') == 200:
+                result = data.get('data', {})
+                nodes = result.get('nodes', [])
+                links = result.get('links', [])
+                print(f"\n[成功] 获取 {len(nodes)} 个节点, {len(links)} 条连接")
+                if nodes:
+                    print("\n节点预览 (前5个):")
+                    for i, node in enumerate(nodes[:5], 1):
+                        print(f"  {i}. {node.get('name')} ({node.get('category')})")
+                if links:
+                    print("\n连接预览 (前3个):")
+                    for i, link in enumerate(links[:3], 1):
+                        print(f"  {i}. {link.get('source')} -> {link.get('target')} (流量: {link.get('value')})")
+            else:
+                print(f"\n[错误] 接口返回错误: {data.get('message')}")
+        else:
+            print(f"\n[错误] HTTP错误: {response.status_code}")
+            
+    except requests.exceptions.ConnectionError:
+        print("\n[错误] 连接失败！请确保服务器已启动 (python app.py)")
+    except requests.exceptions.Timeout:
+        print("\n[错误] 请求超时")
+    except Exception as e:
+        print(f"\n[错误] 测试失败: {e}")
+
+def test_sankey_compare():
+    """测试桑基图接口 - 对比模式"""
+    print("\n[测试] 接口: 获取桑基图数据 (对比模式)")
+    # 使用示例中的职位名称
+    url = f"{BASE_URL}/positions/sankey?mode=compare&job_titles=bfbc45b05c5a4425210cd2cb3d84ae09GC&job_titles=c9a30a5443d04270fb0f49d437c3376bAy"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        print_response(response, "桑基图数据 (对比模式)")
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('code') == 200:
+                result = data.get('data', {})
+                nodes = result.get('nodes', [])
+                links = result.get('links', [])
+                print(f"\n[成功] 获取 {len(nodes)} 个节点, {len(links)} 条连接")
+                if nodes:
+                    print("\n节点预览 (前5个):")
+                    for i, node in enumerate(nodes[:5], 1):
+                        print(f"  {i}. {node.get('name')} ({node.get('category')})")
+                if links:
+                    print("\n连接预览 (前3个):")
+                    for i, link in enumerate(links[:3], 1):
+                        print(f"  {i}. {link.get('source')} -> {link.get('target')} (流量: {link.get('value')})")
+            else:
+                print(f"\n[错误] 接口返回错误: {data.get('message')}")
+        else:
+            print(f"\n[错误] HTTP错误: {response.status_code}")
+            
+    except requests.exceptions.ConnectionError:
+        print("\n[错误] 连接失败！请确保服务器已启动 (python app.py)")
+    except requests.exceptions.Timeout:
+        print("\n[错误] 请求超时")
+    except Exception as e:
+        print(f"\n[错误] 测试失败: {e}")
+
 def main():
     """主测试函数"""
     print("\n" + "=" * 60)
@@ -110,9 +183,11 @@ def main():
     print(f"API地址: {BASE_URL}")
     print("\n提示: 请确保服务器已启动 (运行 python app.py)")
     
-    # 测试两个接口
+    # 测试接口
     test_job_ranking()
     test_industry_trend_rose()
+    test_sankey_all()
+    test_sankey_compare()
     
     print("\n" + "=" * 60)
     print("[完成] 测试完成！")

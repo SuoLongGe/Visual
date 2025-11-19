@@ -20,6 +20,11 @@
           <Q1Tab />
         </div>
 
+        <!-- Q2 职位画像分析 -->
+        <div v-if="activeTab === 'q2'" class="tab-content active">
+          <Q2Tab />
+        </div>
+
         <!-- 三维柱状图 -->
         <div v-if="activeTab === '3d-chart'" class="tab-content active">
           <Q3Tab />
@@ -37,6 +42,7 @@
 <script setup>
 import { ref } from 'vue'
 import Q1Tab from './tabs/Q1Tab.vue'
+import Q2Tab from './tabs/Q2Tab.vue'
 import Q3Tab from './tabs/Q3Tab.vue'
 import Q5Tab from './tabs/Q5Tab.vue'
   
@@ -44,6 +50,7 @@ const activeTab = ref('q1')
 
 const tabs = [
   { id: 'q1', label: 'Q1' },
+  { id: 'q2', label: 'Q2' },
   { id: '3d-chart', label: 'Q3' },
   { id: 'q5', label: 'Q5' }
 ]

@@ -157,7 +157,7 @@ watch(viewType, () => {
 })
 
 // 监听城市筛选变化 - 自动刷新
-const cityWatchStop = watch(() => filters.value.city, (newVal, oldVal) => {
+let cityWatchStop = watch(() => filters.value.city, (newVal, oldVal) => {
   // 只有在已有数据且城市确实改变时才刷新
   if (hasData.value && filters.value.experience && filters.value.education && newVal !== oldVal && !isLoading) {
     handleLoad()
@@ -165,7 +165,7 @@ const cityWatchStop = watch(() => filters.value.city, (newVal, oldVal) => {
 })
 
 // 监听公司类型筛选变化 - 自动刷新
-const companyTypeWatchStop = watch(() => filters.value.company_type, (newVal, oldVal) => {
+let companyTypeWatchStop = watch(() => filters.value.company_type, (newVal, oldVal) => {
   // 只有在已有数据且公司类型确实改变时才刷新
   if (hasData.value && filters.value.experience && filters.value.education && newVal !== oldVal && !isLoading) {
     handleLoad()
@@ -570,9 +570,9 @@ const renderBoxplot = (data) => {
           return idx * 100 + 800
         }
       },
-      // 添加平均线
+      // 添加中位数平均线
       {
-        name: '平均值',
+        name: '',
         type: 'line',
         markLine: {
           silent: true,
@@ -583,10 +583,11 @@ const renderBoxplot = (data) => {
             width: 2
           },
           label: {
+            show: true,
             position: 'end',
             formatter: function() {
-              const totalMedian = dataSource.reduce((sum, item) => sum + item.stats.median, 0) / dataSource.length
-              return `平均: ${totalMedian.toFixed(1)}K`
+              const avgMedian = dataSource.reduce((sum, item) => sum + item.stats.median, 0) / dataSource.length
+              return `中位数: ${avgMedian.toFixed(1)}K`
             },
             fontSize: 11,
             color: '#67C23A',
@@ -595,6 +596,7 @@ const renderBoxplot = (data) => {
             borderRadius: 3
           },
           data: [{
+            name: '',
             yAxis: dataSource.reduce((sum, item) => sum + item.stats.median, 0) / dataSource.length
           }]
         }
