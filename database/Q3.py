@@ -8,6 +8,7 @@ import pymysql
 import logging
 from contextlib import contextmanager
 from typing import List, Tuple, Any, Optional, Dict
+from decimal import Decimal
 from config import config
 
 logger = logging.getLogger(__name__)
@@ -723,3 +724,104 @@ class DatabaseManager:
             LIMIT 1000
         """
         return self.execute_query(query)
+
+    def get_city_tier_heatmap(self, tier: str) -> List[Dict[str, Any]]:
+        """
+        获取城市等级热力图数据
+        """
+        query = """
+            SELECT
+                city,
+                city_tier,
+                company_type,
+                job_count,
+                total_jobs_in_city,
+                company_count_in_city,
+                national_job_count,
+                industry_ratio,
+                location_quotient,
+                avg_education_rank,
+                avg_experience_rank,
+                is_in_ten
+            FROM city_type_statistics_top20
+            WHERE city_tier = %s
+            ORDER BY city, job_count DESC
+        """
+        try:
+            with self.get_connection() as connection:
+                cursor = connection.cursor(pymysql.cursors.DictCursor)
+                try:
+                    logger.info(f"执行热力图查询，tier: {tier}")
+                    cursor.execute(query, (tier,))
+                    results = cursor.fetchall()
+                    logger.info(f"查询返回 {len(results) if results else 0} 条记录")
+                    # 将 Decimal 类型转换为 float，避免 JSON 序列化问题
+                    if results:
+                        for row in results:
+                            for key, value in row.items():
+                                if isinstance(value, Decimal):
+                                    row[key] = float(value)
+                                elif value is None:
+                                    row[key] = 0 if key in ['job_count', 'company_count_in_city', 'national_job_count'] else 0.0
+                    return results or []
+                except Exception as e:
+                    logger.error(f"执行查询失败 - tier: {tier}, 错误: {e}", exc_info=True)
+                    raise
+                finally:
+                    cursor.close()
+        except Exception as e:
+            logger.error(f"数据库连接或查询失败 - tier: {tier}, 错误: {e}", exc_info=True)
+            raise
+
+    def get_city_type_statistics_by_tiers(self, tiers: List[str]) -> List[Dict[str, Any]]:
+        """
+        使用 city_type_statistics 表，按城市等级列表获取城市-公司类型统计数据
+        该表未做“前20+其他”截断，更适合大样本气泡图分析
+        """
+        if not tiers:
+            return []
+
+        # 构造 IN 子句占位符
+        placeholders = ",".join(["%s"] * len(tiers))
+        query = f"""
+            SELECT
+                city,
+                city_tier,
+                company_type,
+                job_count,
+                total_jobs_in_city,
+                company_count_in_city,
+                avg_education_rank,
+                avg_experience_rank,
+                industry_ratio,
+                is_in_ten,
+                national_job_count,
+                location_quotient
+            FROM city_type_statistics
+            WHERE city_tier IN ({placeholders})
+        """
+
+        try:
+            with self.get_connection() as connection:
+                cursor = connection.cursor(pymysql.cursors.DictCursor)
+                try:
+                    logger.info(f"执行多维气泡图查询，city_tiers: {tiers}")
+                    cursor.execute(query, tuple(tiers))
+                    results = cursor.fetchall()
+                    logger.info(f"多维气泡图查询返回 {len(results) if results else 0} 条记录")
+
+                    # 将 Decimal 类型统一转换为 float，避免 JSON 序列化问题
+                    if results:
+                        for row in results:
+                            for key, value in row.items():
+                                if isinstance(value, Decimal):
+                                    row[key] = float(value)
+                    return results or []
+                except Exception as e:
+                    logger.error(f"执行多维气泡图查询失败 - city_tiers: {tiers}, 错误: {e}", exc_info=True)
+                    raise
+                finally:
+                    cursor.close()
+        except Exception as e:
+            logger.error(f"数据库连接或多维气泡图查询失败 - city_tiers: {tiers}, 错误: {e}", exc_info=True)
+            raise

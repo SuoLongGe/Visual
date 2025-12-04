@@ -16,6 +16,10 @@ from routes.salary_3d_routes import salary_3d_bp
 from routes.q1_routes import q1_bp
 from routes.industry_stats_routes import industry_stats_bp
 from routes.position_routes import position_bp
+from routes.heatmap_routes import heatmap_bp
+from routes.wordcloud_routes import wordcloud_bp
+from routes.region_profile_routes import region_profile_bp
+from routes.industry_bubble_routes import industry_bubble_bp
 from utils.response import ResponseBuilder
 
 # 配置日志
@@ -35,6 +39,10 @@ def create_app():
     app.register_blueprint(q1_bp)
     app.register_blueprint(industry_stats_bp)
     app.register_blueprint(position_bp)
+    app.register_blueprint(heatmap_bp)
+    app.register_blueprint(wordcloud_bp)
+    app.register_blueprint(region_profile_bp)
+    app.register_blueprint(industry_bubble_bp)
     
     # 注册错误处理器
     @app.errorhandler(404)
