@@ -2,47 +2,64 @@
   <div class="scatter-bubble-chart">
     <!-- 控制面板 -->
     <div class="controls">
-      <div class="control-item">
+      <div class="control-item" v-if="viewMode === 'city'">
         <label for="city-select">选择城市：</label>
-        <select id="city-select" v-model="selectedCity" @change="loadScatterData" class="city-select">
+        <select 
+          id="city-select" 
+          v-model="selectedCity" 
+          @change="loadScatterData" 
+          class="city-select"
+        >
           <option v-for="city in cities" :key="city" :value="city">{{ city }}</option>
         </select>
       </div>
+      <div class="control-item" v-else>
+        <label>行业模式：</label>
+        <span class="mode-hint">已展示全国 160 个行业类别</span>
+      </div>
       
       <div class="control-item">
-        <label>颜色编码：</label>
+        <label>视图切换：</label>
         <div class="color-mode-buttons">
           <button 
             :class="['mode-btn', { active: colorMode === 'job_level' }]"
-            @click="colorMode = 'job_level'"
+            @click="setViewMode('job_level')"
           >
-            职位层级
+            按城市 · 职位层级
           </button>
           <button 
             :class="['mode-btn', { active: colorMode === 'industry' }]"
-            @click="colorMode = 'industry'"
+            @click="setViewMode('industry')"
           >
-            行业类别
+            全国 · 行业类别
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 图例 -->
+    <!-- 图例 / 提示 -->
     <div class="legend">
-      <div class="legend-title">{{ colorMode === 'job_level' ? '职位层级' : '行业类别' }}</div>
-      <div class="legend-items">
-        <div 
-          v-for="item in legendItems" 
-          :key="item.name"
-          class="legend-item"
-          @click="toggleCategory(item.name)"
-          :class="{ inactive: hiddenCategories.has(item.name) }"
-        >
-          <span class="legend-color" :style="{ backgroundColor: item.color }"></span>
-          <span class="legend-label">{{ item.name }}</span>
+      <template v-if="viewMode === 'city'">
+        <div class="legend-title">职位层级</div>
+        <div class="legend-items">
+          <div 
+            v-for="item in legendItems" 
+            :key="item.name"
+            class="legend-item"
+            @click="toggleCategory(item.name)"
+            :class="{ inactive: hiddenCategories.has(item.name) }"
+          >
+            <span class="legend-color" :style="{ backgroundColor: item.color }"></span>
+            <span class="legend-label">{{ item.name }}</span>
+          </div>
         </div>
-      </div>
+      </template>
+      <template v-else>
+        <div class="legend-title">全国行业类别散点</div>
+        <p class="industry-legend-hint">
+          气泡颜色自动分配，无需手动筛选；横轴为平均经验层级，纵轴为平均薪资。
+        </p>
+      </template>
     </div>
 
     <!-- ECharts容器 -->
@@ -51,13 +68,33 @@
     <!-- 选中节点信息 -->
     <div v-if="selectedNodes.length > 0" class="selected-info">
       <div class="selected-header">
-        <span>已选择 {{ selectedNodes.length }} 个职位</span>
+        <span>
+          {{ viewMode === 'city' ? '已选择 ' + selectedNodes.length + ' 个职位' : '已选择 ' + selectedNodes.length + ' 个行业' }}
+        </span>
         <button @click="clearSelection" class="clear-btn">清除选择</button>
       </div>
       <div class="selected-list">
-        <div v-for="(node, index) in selectedNodes" :key="`${node.job_title}-${node.salary}-${node.experience}-${index}`" class="selected-node">
-          <span class="node-title">{{ node.job_title }}</span>
-          <span class="node-info">{{ node.salary }} | {{ node.experience }} | {{ node.company_type }}</span>
+        <div
+          v-for="(node, index) in selectedNodes"
+          :key="`${node.job_title}-${node.avg_salary}-${node.avg_experience}-${index}`"
+          class="selected-node"
+        >
+          <template v-if="viewMode === 'city'">
+            <span class="node-title">{{ node.job_title }}</span>
+            <span class="node-info">
+              平均薪资：{{ node.avg_salary?.toFixed(2) }}K |
+              平均经验：{{ node.avg_experience?.toFixed(2) }} |
+              平均学历：{{ node.avg_education?.toFixed(2) }}
+            </span>
+          </template>
+          <template v-else>
+            <span class="node-title">{{ node.company_type }}</span>
+            <span class="node-info">
+              招聘总数：{{ node.job_count }} |
+              平均薪资：{{ node.avg_median_salary?.toFixed(2) }}K |
+              平均经验：{{ node.avg_experience_rank?.toFixed(2) }}
+            </span>
+          </template>
         </div>
       </div>
     </div>
@@ -67,15 +104,19 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { getRepresentativeCities, getScatterData, getJobLevels, getIndustries } from '@/api/q1Api'
+import { 
+  getRepresentativeCities, 
+  getScatterData, 
+  getNationalIndustryScatter
+} from '@/api/q1Api'
 
 // 响应式数据
 const cities = ref([])
 const selectedCity = ref('')
 const scatterData = ref(null)
+const industryScatterData = ref(null)
 const colorMode = ref('job_level') // 'job_level' 或 'industry'
-const jobLevels = ref([])
-const industries = ref([])
+const viewMode = computed(() => colorMode.value === 'job_level' ? 'city' : 'industry')
 const hiddenCategories = ref(new Set())
 const selectedNodes = ref([])
 const chartContainer = ref(null)
@@ -83,10 +124,10 @@ let chartInstance = null
 
 // 定义配色方案
 const jobLevelColors = {
-  '基薪普及': '#5470c6',
-  '平薪新人': '#91cc75',
+  '平薪新人': '#5470c6',  // 蓝色
+  '基薪普及': '#91cc75',  // 绿色
   '优薪技能': '#fac858',
-  '高薪管理': '#ee6666'
+  '高新管理': '#ee6666'
 }
 
 // 生成行业配色（使用渐变色）
@@ -107,21 +148,16 @@ const industryColors = ref({})
 
 // 计算图例项
 const legendItems = computed(() => {
-  if (colorMode.value === 'job_level') {
-    return Object.entries(jobLevelColors).map(([name, color]) => ({
-      name,
-      color
-    }))
-  } else {
-    return Object.entries(industryColors.value).map(([name, color]) => ({
-      name,
-      color
-    }))
-  }
+  if (viewMode.value !== 'city') return []
+  return Object.entries(jobLevelColors).map(([name, color]) => ({
+    name,
+    color
+  }))
 })
 
 // 切换类别显示/隐藏
 const toggleCategory = (category) => {
+  if (viewMode.value !== 'city') return
   if (hiddenCategories.value.has(category)) {
     hiddenCategories.value.delete(category)
   } else {
@@ -147,10 +183,6 @@ const loadInitialData = async () => {
     const citiesResponse = await getRepresentativeCities()
     cities.value = citiesResponse.cities
     
-    // 加载职位层级
-    const jobLevelsResponse = await getJobLevels()
-    jobLevels.value = jobLevelsResponse.job_levels
-    
     // 选择第一个城市
     if (cities.value.length > 0) {
       selectedCity.value = cities.value[0]
@@ -163,17 +195,12 @@ const loadInitialData = async () => {
 
 // 加载散点图数据
 const loadScatterData = async () => {
-  if (!selectedCity.value) return
+  if (!selectedCity.value || viewMode.value !== 'city') return
   
   try {
     // 加载散点图数据
     const response = await getScatterData(selectedCity.value)
     scatterData.value = response
-    
-    // 加载该城市的行业列表
-    const industriesResponse = await getIndustries(selectedCity.value)
-    industries.value = industriesResponse.industries
-    industryColors.value = generateIndustryColors(industries.value)
     
     // 更新图表
     await nextTick()
@@ -183,58 +210,89 @@ const loadScatterData = async () => {
   }
 }
 
+// 加载全国行业散点数据
+const loadIndustryScatterData = async () => {
+  try {
+    const response = await getNationalIndustryScatter()
+    industryScatterData.value = response
+    const typeList = response?.data?.map(item => item.company_type) || []
+    industryColors.value = generateIndustryColors(typeList)
+    await nextTick()
+    updateChart()
+  } catch (error) {
+    console.error('加载行业散点数据失败:', error)
+  }
+}
+
 // 准备图表数据
 const prepareChartData = () => {
-  if (!scatterData.value || !scatterData.value.data) return []
-  
-  const data = scatterData.value.data
-  const category = colorMode.value === 'job_level' ? 'job_level' : 'company_type'
-  const colors = colorMode.value === 'job_level' ? jobLevelColors : industryColors.value
-  
-  // 按类别分组
-  const groupedData = {}
-  
-  data.forEach(point => {
-    const categoryValue = point[category]
-    
-    // 如果该类别被隐藏，跳过
-    if (hiddenCategories.value.has(categoryValue)) return
-    
-    if (!groupedData[categoryValue]) {
-      groupedData[categoryValue] = []
-    }
-    
-    groupedData[categoryValue].push({
-      value: [
-        point.experience_rank,
-        point.salary_value,
-        point.normalized_size
-      ],
-      itemStyle: {
-        color: colors[categoryValue] || '#ccc'
-      },
-      // 存储完整信息用于tooltip
-      rawData: point
+  if (viewMode.value === 'city') {
+    if (!scatterData.value || !scatterData.value.data) return []
+    const data = scatterData.value.data
+    const groupedData = {}
+    data.forEach(point => {
+      const categoryValue = point.job_level
+      if (hiddenCategories.value.has(categoryValue)) return
+      if (!groupedData[categoryValue]) {
+        groupedData[categoryValue] = []
+      }
+      groupedData[categoryValue].push({
+        value: [
+          point.avg_experience,
+          point.avg_salary,
+          point.normalized_size
+        ],
+        itemStyle: {
+          color: jobLevelColors[categoryValue] || '#ccc'
+        },
+        rawData: point
+      })
     })
-  })
-  
-  // 转换为ECharts series格式
-  return Object.entries(groupedData).map(([categoryName, points]) => ({
-    name: categoryName,
-    type: 'scatter',
-    symbolSize: (data) => {
-      // 使用归一化后的气泡大小
-      return data[2]
+    return Object.entries(groupedData).map(([categoryName, points]) => ({
+      name: categoryName,
+      type: 'scatter',
+      symbolSize: dataPoint => dataPoint[2],
+      data: points,
+      emphasis: {
+        focus: 'self',
+        itemStyle: {
+          borderColor: '#333',
+          borderWidth: 2
+        }
+      }
+    }))
+  }
+
+  // 行业模式：单个系列，按行业着色
+  if (!industryScatterData.value || !industryScatterData.value.data) return []
+  const industryPoints = industryScatterData.value.data.map(item => ({
+    value: [
+      item.avg_experience_rank,
+      item.avg_median_salary,
+      item.normalized_size
+    ],
+    name: item.company_type,
+    itemStyle: {
+      color: industryColors.value[item.company_type] || '#5470c6'
     },
-    data: points,
-    emphasis: {
-      focus: 'self',
-      itemStyle: {
-        borderColor: '#333',
-        borderWidth: 2
+    rawData: item
+  }))
+
+  return [
+    {
+      name: '行业类别',
+      type: 'scatter',
+      symbolSize: dataPoint => dataPoint[2],
+      data: industryPoints,
+      emphasis: {
+        focus: 'self',
+        itemStyle: {
+          borderColor: '#333',
+          borderWidth: 2
+        }
       }
     }
-  }))
+  ]
 }
 
 // 更新图表
@@ -245,7 +303,9 @@ const updateChart = () => {
   
   const option = {
     title: {
-      text: `${selectedCity.value} - 职位分布散点图`,
+      text: viewMode.value === 'city' 
+        ? `${selectedCity.value} - 职位分布散点图`
+        : '全国行业类别散点（160）',
       left: 'center',
       top: 10
     },
@@ -253,14 +313,46 @@ const updateChart = () => {
       trigger: 'item',
       formatter: (params) => {
         const data = params.data.rawData
+
+        if (viewMode.value === 'industry') {
+          return `
+            <div style="padding: 8px; max-width: 320px;">
+              <strong>${data.company_type}</strong><br/>
+              <span style="color: #666;">招聘总数：</span>${data.job_count}<br/>
+              <span style="color: #666;">平均中位薪资：</span>${data.avg_median_salary.toFixed(2)}K<br/>
+              <span style="color: #666;">平均经验层级：</span>${data.avg_experience_rank.toFixed(2)}<br/>
+              <span style="color: #666;">平均学历层级：</span>${data.avg_education_rank.toFixed(2)}<br/>
+              <span style="color: #666;">平均城市等级：</span>${data.avg_city_tier_label || '暂无'}${data.avg_city_tier_score ? `（${data.avg_city_tier_score.toFixed(2)}）` : ''}<br/>
+            </div>
+          `
+        }
+
+        const samples = data.samples || []
+        const samplesHtml = samples.length
+          ? samples.map((s, idx) => `
+              <div style="margin-top:4px;font-size:12px;">
+                <span style="color:#999;">样本${idx + 1}：</span>
+                薪资：${s.salary}，学历：${s.education}，经验：${s.experience}
+              </div>
+            `).join('')
+          : '<div style="margin-top:4px;font-size:12px;color:#aaa;">无示例数据</div>'
+
         return `
-          <div style="padding: 8px;">
+          <div style="padding: 8px; max-width: 320px;">
             <strong>${data.job_title}</strong><br/>
-            <span style="color: #666;">薪资：</span>${data.salary}<br/>
-            <span style="color: #666;">经验：</span>${data.experience}<br/>
-            <span style="color: #666;">招聘人数：</span>${data.recruit_count}<br/>
+            <span style="color: #666;">平均薪资：</span>${data.avg_salary.toFixed(2)}K<br/>
+            <span style="color: #666;">薪资标准差：</span>${data.salary_std.toFixed(2)}K<br/>
+            <span style="color: #666;">平均经验：</span>${data.avg_experience.toFixed(2)}（层级）<br/>
+            <span style="color: #666;">平均学历：</span>${data.avg_education.toFixed(2)}（层级）<br/>
+            <span style="color: #666;">香农熵：</span>${data.avg_shannon_entropy.toFixed(3)}<br/>
+            <span style="color: #666;">招聘人数：</span>${data.job_in_city_cnt}<br/>
+            <span style="color: #666;">薪资范围：</span>${data.min_annual_salary.toFixed(2)}K - ${data.max_annual_salary.toFixed(2)}K<br/>
             <span style="color: #666;">职位层级：</span>${data.job_level}<br/>
-            <span style="color: #666;">行业：</span>${data.company_type}
+            <span style="color: #666;">行业示例：</span>${data.company_type}<br/>
+            <div style="margin-top:6px;padding-top:4px;border-top:1px solid #eee;font-size:12px;color:#666;">
+              <div style="margin-bottom:2px;color:#999;">该城市该职位的示例记录：</div>
+              ${samplesHtml}
+            </div>
           </div>
         `
       }
@@ -273,12 +365,14 @@ const updateChart = () => {
       containLabel: true
     },
     xAxis: {
-      name: '经验层级 (1-10)',
+      name: viewMode.value === 'city' ? '经验层级 (1-10)' : '平均经验层级',
       nameLocation: 'middle',
       nameGap: 30,
       type: 'value',
-      min: 0,
-      max: 11,
+      // 城市模式保留原来的 0-10，行业模式聚焦在 4-6 区间，减少空白和拥挤
+      min: viewMode.value === 'city' ? 0 : 4,
+      max: viewMode.value === 'city' ? 10 : 6,
+      splitNumber: viewMode.value === 'city' ? 10 : 8,
       splitLine: {
         show: true,
         lineStyle: {
@@ -315,31 +409,33 @@ const initChart = () => {
   // 监听点击事件实现多选
   chartInstance.on('click', (params) => {
     const data = params.data.rawData
-    
-    // 使用多个字段组合来唯一标识一个职位
-    const isSameJob = (a, b) => {
-      return a.job_title === b.job_title && 
-             a.salary === b.salary && 
-             a.experience === b.experience &&
-             a.company_type === b.company_type
+    const isSameEntity = (a, b) => {
+      if (viewMode.value === 'city') {
+        return a.job_title === b.job_title &&
+               a.avg_salary === b.avg_salary &&
+               a.avg_experience === b.avg_experience &&
+               a.company_type === b.company_type
+      }
+      return a.company_type === b.company_type
     }
-    
-    // 检查是否已经选中
-    const index = selectedNodes.value.findIndex(n => isSameJob(n, data))
-    
+
+    const index = selectedNodes.value.findIndex(n => isSameEntity(n, data))
+
     if (index >= 0) {
-      // 取消选中
       selectedNodes.value.splice(index, 1)
-      console.log('ScatterChart: 取消选中职位', index, '剩余:', selectedNodes.value.length)
     } else {
-      // 添加到选中列表
+      // 行业模式限制最大2个，便于右侧差异对比
+      if (viewMode.value === 'industry' && selectedNodes.value.length >= 2) {
+        selectedNodes.value.shift()
+      }
       selectedNodes.value.push(data)
-      console.log('ScatterChart: 选中职位，总数:', selectedNodes.value.length)
     }
   })
   
   // 监听窗口大小变化
   window.addEventListener('resize', handleResize)
+
+  updateChart()
 }
 
 // 处理窗口大小变化
@@ -349,14 +445,34 @@ const handleResize = () => {
   }
 }
 
-// 监听颜色模式变化
-watch(colorMode, () => {
-  updateChart()
+const setViewMode = (mode) => {
+  if (colorMode.value === mode) return
+  colorMode.value = mode
+}
+
+// 监听模式变化
+watch(colorMode, async (mode) => {
+  hiddenCategories.value = new Set()
+  selectedNodes.value = []
+
+  if (mode === 'job_level') {
+    if (selectedCity.value) {
+      await loadScatterData()
+    }
+  } else {
+    if (!industryScatterData.value) {
+      await loadIndustryScatterData()
+    } else {
+      await nextTick()
+      updateChart()
+    }
+  }
 })
 
 // 组件挂载时初始化
 onMounted(async () => {
   await loadInitialData()
+  await loadIndustryScatterData()
   initChart()
 })
 
@@ -371,7 +487,8 @@ onUnmounted(() => {
 
 // 暴露选中的节点数据（供父组件使用）
 defineExpose({
-  selectedNodes
+  selectedNodes,
+  viewMode
 })
 </script>
 
@@ -398,6 +515,11 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.mode-hint {
+  font-size: 14px;
+  color: #666;
 }
 
 .control-item label {
@@ -457,6 +579,12 @@ defineExpose({
   font-weight: 600;
   color: #333;
   margin-bottom: 10px;
+}
+
+.industry-legend-hint {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
 }
 
 .legend-items {

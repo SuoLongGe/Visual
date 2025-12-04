@@ -14,48 +14,79 @@
     <!-- 右侧：上下排列两个图 -->
     <div class="right-section">
       <!-- 雷达图 -->
-      <div class="right-chart radar-chart">
-        <h3>职位多维对比</h3>
-        <p class="chart-description-small">
-          从散点图选择2-3个职位，对比薪资、经验、学历、招聘人数、城市等级
-        </p>
-        <RadarComparisonChart :selectedJobs="selectedNodes" />
-      </div>
-      
-      <!-- 环状图（中心有数字） -->
-      <div class="right-chart ring-chart">
-        <h3>职位差异度分析</h3>
-        <p class="chart-description-small">
-          选择2个职位，分析五个维度的差异贡献度
-        </p>
-        <DifferenceRingChart :selectedJobs="selectedNodes" />
-      </div>
+      <template v-if="currentMode === 'city'">
+        <div class="right-chart radar-chart">
+          <h3>职位多维对比</h3>
+          <p class="chart-description-small">
+            从散点图选择2-3个职位，对比薪资、经验、学历、招聘人数、城市等级
+          </p>
+          <RadarComparisonChart :selectedJobs="citySelectedJobs" />
+        </div>
+        
+        <div class="right-chart ring-chart">
+          <h3>职位差异度分析</h3>
+          <p class="chart-description-small">
+            选择2个职位，分析五个维度的差异贡献度
+          </p>
+          <DifferenceRingChart :selectedJobs="citySelectedJobs" />
+        </div>
+      </template>
+
+      <template v-else>
+        <div class="right-chart radar-chart">
+          <h3>行业差异分布条</h3>
+          <p class="chart-description-small">
+            中轴线表示差异中位，左右柱形展示各行业在五个维度的超越幅度
+          </p>
+          <IndustryDifferenceBarChart :selectedIndustries="industrySelected" />
+        </div>
+
+        <div class="right-chart ring-chart">
+          <h3>行业差异裂纹占比</h3>
+          <p class="chart-description-small">
+            裂纹面积代表差异贡献，中央不规则区域展示总体差异度
+          </p>
+          <FractureDifferenceChart :selectedIndustries="industrySelected" />
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import ScatterBubbleChart from '@/components/charts/ScatterBubbleChart.vue'
 import RadarComparisonChart from '@/components/charts/RadarComparisonChart.vue'
 import DifferenceRingChart from '@/components/charts/DifferenceRingChart.vue'
+import IndustryDifferenceBarChart from '@/components/charts/IndustryDifferenceBarChart.vue'
+import FractureDifferenceChart from '@/components/charts/FractureDifferenceChart.vue'
 
 // Q1 职位差异度分析标签页
 // 包含三个视图：左侧散点图，右侧雷达图和环状图
 
 const scatterChart = ref(null)
 const selectedNodes = ref([])
+const currentMode = ref('city')
+const citySelectedJobs = computed(() => currentMode.value === 'city' ? selectedNodes.value : [])
+const industrySelected = computed(() => currentMode.value === 'industry' ? selectedNodes.value : [])
 
 // 使用间隔轮询方式监听选中节点
 let pollTimer = null
 onMounted(() => {
   pollTimer = setInterval(() => {
-    if (scatterChart.value && scatterChart.value.selectedNodes) {
-      const nodes = scatterChart.value.selectedNodes
-      if (nodes.length !== selectedNodes.value.length || 
-          JSON.stringify(nodes) !== JSON.stringify(selectedNodes.value)) {
+    if (scatterChart.value) {
+      const nodes = scatterChart.value.selectedNodes || []
+      const mode = scatterChart.value.viewMode || 'city'
+
+      if (mode !== currentMode.value) {
+        currentMode.value = mode
+      }
+
+      const needUpdate = nodes.length !== selectedNodes.value.length || 
+        JSON.stringify(nodes) !== JSON.stringify(selectedNodes.value)
+
+      if (needUpdate) {
         selectedNodes.value = [...nodes]
-        console.log('Q1Tab: 更新选中节点', selectedNodes.value.length)
       }
     }
   }, 300)
