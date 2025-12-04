@@ -42,11 +42,11 @@
         </div>
 
         <div class="right-chart ring-chart">
-          <h3>行业差异裂纹占比</h3>
+          <h3>行业差异力引导图</h3>
           <p class="chart-description-small">
-            裂纹面积代表差异贡献，中央不规则区域展示总体差异度
+            节点距离中心越近，表示该维度差异贡献越大，整体呈现漂浮状态
           </p>
-          <FractureDifferenceChart :selectedIndustries="industrySelected" />
+          <ForceDirectedChart :selectedIndustries="industrySelected" />
         </div>
       </template>
     </div>
@@ -59,7 +59,7 @@ import ScatterBubbleChart from '@/components/charts/ScatterBubbleChart.vue'
 import RadarComparisonChart from '@/components/charts/RadarComparisonChart.vue'
 import DifferenceRingChart from '@/components/charts/DifferenceRingChart.vue'
 import IndustryDifferenceBarChart from '@/components/charts/IndustryDifferenceBarChart.vue'
-import FractureDifferenceChart from '@/components/charts/FractureDifferenceChart.vue'
+import ForceDirectedChart from '@/components/charts/ForceDirectedChart.vue'
 
 // Q1 职位差异度分析标签页
 // 包含三个视图：左侧散点图，右侧雷达图和环状图

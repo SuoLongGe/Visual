@@ -297,7 +297,11 @@ const prepareChartData = () => {
 
 // 更新图表
 const updateChart = () => {
-  if (!chartInstance || !scatterData.value) return
+  if (!chartInstance) return
+  
+  // 根据当前模式检查数据
+  if (viewMode.value === 'city' && !scatterData.value) return
+  if (viewMode.value === 'industry' && !industryScatterData.value) return
   
   const series = prepareChartData()
   
@@ -359,8 +363,8 @@ const updateChart = () => {
     },
     grid: {
       left: '10%',
-      right: '10%',
-      bottom: '15%',
+      right: '12%', // 增加右侧空间以容纳垂直滑块
+      bottom: '18%', // 增加底部空间以容纳水平滑块
       top: '15%',
       containLabel: true
     },
@@ -391,6 +395,146 @@ const updateChart = () => {
         lineStyle: {
           type: 'dashed',
           color: '#e0e0e0'
+        }
+      }
+    },
+    // 添加内置缩放功能（鼠标滚轮缩放和拖拽平移）
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: 0,
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true, // 鼠标滚轮缩放
+        moveOnMouseMove: true, // 鼠标移动平移
+        moveOnMouseWheel: false, // 禁用鼠标滚轮平移（优先缩放）
+        preventDefaultMouseMove: true // 防止默认鼠标移动行为
+      },
+      {
+        type: 'inside',
+        yAxisIndex: 0,
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true, // 鼠标滚轮缩放
+        moveOnMouseMove: true, // 鼠标移动平移
+        moveOnMouseWheel: false, // 禁用鼠标滚轮平移（优先缩放）
+        preventDefaultMouseMove: true // 防止默认鼠标移动行为
+      },
+      // 添加滑块缩放（方便精确控制）
+      {
+        type: 'slider',
+        xAxisIndex: 0,
+        start: 0,
+        end: 100,
+        show: true,
+        showDataShadow: false,
+        showDetail: true,
+        realtime: true,
+        height: 20,
+        bottom: 10,
+        handleIcon: 'path://M30.9,53.2C16.8,53.2,5.3,41.7,5.3,27.6S16.8,2,30.9,2C45,2,56.4,13.5,56.4,27.6S45,53.2,30.9,53.2z M30.9,3.5C17.6,3.5,6.8,14.4,6.8,27.6c0,13.3,10.8,24.1,24.1,24.1C44.2,51.7,55,40.9,55,27.6C54.9,14.4,44.1,3.5,30.9,3.5z M36.9,35.8c0,0.6-0.4,1-1,1H26.8c-0.6,0-1-0.4-1-1s0.4-1,1-1h9.2C36.5,34.8,36.9,35.2,36.9,35.8z',
+        handleSize: '80%',
+        handleStyle: {
+          color: '#5470c6',
+          shadowBlur: 3,
+          shadowColor: 'rgba(0, 0, 0, 0.6)',
+          shadowOffsetX: 2,
+          shadowOffsetY: 2
+        },
+        textStyle: {
+          color: '#333',
+          fontSize: 11
+        },
+        borderColor: '#5470c6',
+        fillerColor: 'rgba(84, 112, 198, 0.2)',
+        dataBackground: {
+          lineStyle: {
+            color: '#5470c6',
+            width: 1
+          },
+          areaStyle: {
+            color: 'rgba(84, 112, 198, 0.1)'
+          }
+        },
+        selectedDataBackground: {
+          lineStyle: {
+            color: '#5470c6',
+            width: 2
+          },
+          areaStyle: {
+            color: 'rgba(84, 112, 198, 0.3)'
+          }
+        }
+      },
+      {
+        type: 'slider',
+        yAxisIndex: 0,
+        start: 0,
+        end: 100,
+        show: true,
+        showDataShadow: false,
+        showDetail: true,
+        realtime: true,
+        width: 20,
+        right: 10,
+        handleIcon: 'path://M30.9,53.2C16.8,53.2,5.3,41.7,5.3,27.6S16.8,2,30.9,2C45,2,56.4,13.5,56.4,27.6S45,53.2,30.9,53.2z M30.9,3.5C17.6,3.5,6.8,14.4,6.8,27.6c0,13.3,10.8,24.1,24.1,24.1C44.2,51.7,55,40.9,55,27.6C54.9,14.4,44.1,3.5,30.9,3.5z M36.9,35.8c0,0.6-0.4,1-1,1H26.8c-0.6,0-1-0.4-1-1s0.4-1,1-1h9.2C36.5,34.8,36.9,35.2,36.9,35.8z',
+        handleSize: '80%',
+        handleStyle: {
+          color: '#5470c6',
+          shadowBlur: 3,
+          shadowColor: 'rgba(0, 0, 0, 0.6)',
+          shadowOffsetX: 2,
+          shadowOffsetY: 2
+        },
+        textStyle: {
+          color: '#333',
+          fontSize: 11
+        },
+        borderColor: '#5470c6',
+        fillerColor: 'rgba(84, 112, 198, 0.2)',
+        dataBackground: {
+          lineStyle: {
+            color: '#5470c6',
+            width: 1
+          },
+          areaStyle: {
+            color: 'rgba(84, 112, 198, 0.1)'
+          }
+        },
+        selectedDataBackground: {
+          lineStyle: {
+            color: '#5470c6',
+            width: 2
+          },
+          areaStyle: {
+            color: 'rgba(84, 112, 198, 0.3)'
+          }
+        }
+      }
+    ],
+    // 添加工具箱，包含重置缩放按钮
+    toolbox: {
+      show: true,
+      feature: {
+        dataZoom: {
+          yAxisIndex: 'none',
+          title: {
+            zoom: '区域缩放',
+            back: '还原缩放'
+          }
+        },
+        restore: {
+          title: '还原'
+        }
+      },
+      right: 20,
+      top: 10,
+      iconStyle: {
+        borderColor: '#5470c6'
+      },
+      emphasis: {
+        iconStyle: {
+          borderColor: '#5470c6'
         }
       }
     },
@@ -450,10 +594,21 @@ const setViewMode = (mode) => {
   colorMode.value = mode
 }
 
+// 重置缩放
+const resetZoom = () => {
+  if (!chartInstance) return
+  chartInstance.dispatchAction({
+    type: 'restore'
+  })
+}
+
 // 监听模式变化
 watch(colorMode, async (mode) => {
   hiddenCategories.value = new Set()
   selectedNodes.value = []
+  
+  // 重置缩放状态
+  resetZoom()
 
   if (mode === 'job_level') {
     if (selectedCity.value) {
