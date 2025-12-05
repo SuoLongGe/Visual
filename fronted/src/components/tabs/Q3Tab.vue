@@ -108,18 +108,20 @@ const handleBarClick = (data) => {
 .q3-tab {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 10px;
 }
 
 .q3-tab h2 {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   color: #2c3e50;
+  font-size: 1.3em;
 }
 
 .chart-description {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   color: #666;
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 0.9em;
 }
 
 .chart-description strong {
@@ -142,7 +144,7 @@ const handleBarClick = (data) => {
 }
 
 .api-section {
-  margin-top: 20px;
+  margin-top: 5px;
 }
 
 .btn {
@@ -168,7 +170,7 @@ const handleBarClick = (data) => {
 
 .q3-tab .top-section {
   display: flex;
-  gap: 30px;
+  gap: 10px;
   align-items: flex-start;
 }
 
@@ -176,15 +178,15 @@ const handleBarClick = (data) => {
   padding-top: 0;
   border-top: none;
   border-left: 2px solid #e0e0e0;
-  padding-left: 30px;
+  padding-left: 10px;
 }
 
 .radar-section {
   width: 100%;
-  margin-top: 30px;
-  padding-top: 30px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 2px solid #e0e0e0;
-  min-height: 800px;
+  min-height: 600px;
 }
 
 .radar-section.full-width {
@@ -196,14 +198,21 @@ const handleBarClick = (data) => {
 @media (max-width: 1200px) {
   .q3-tab .top-section {
     flex-direction: column;
+    gap: 8px;
   }
   
   .boxplot-section {
     border-left: none;
     border-top: 2px solid #e0e0e0;
     padding-left: 0;
-    padding-top: 30px;
-    margin-top: 30px;
+    padding-top: 8px;
+    margin-top: 8px;
+  }
+  
+  .radar-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    min-height: 500px;
   }
 }
 </style>
