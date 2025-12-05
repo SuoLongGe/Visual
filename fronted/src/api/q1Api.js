@@ -38,3 +38,11 @@ export const getIndustries = async (city = null) => {
   return response.data
 }
 
+/**
+ * 获取全国行业散点数据
+ */
+export const getNationalIndustryScatter = async () => {
+  const response = await apiClient.get('/q1/industry-scatter')
+  return response.data
+}
+

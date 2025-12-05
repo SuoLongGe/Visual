@@ -32,31 +32,65 @@ const cityLevelMap = {
   '未知': 1
 }
 
-// 将数据标准化到0-100范围
+// 将数据标准化到0-100范围（六个维度）
+// 使用数据集动态范围，并为max≈min的情况添加10% padding，避免绘制成直线
 const normalizeData = (jobs) => {
   if (jobs.length === 0) return []
   
-  // 收集所有值用于归一化
-  const salaries = jobs.map(j => j.salary_value)
-  const experienceRanks = jobs.map(j => j.experience_rank)
-  const educationRanks = jobs.map(j => j.education_rank)
-  const recruitCounts = jobs.map(j => j.recruit_count)
-  const cityLevels = jobs.map(j => cityLevelMap[j.city_level] || 1)
+  // 根据当前数据计算范围，并添加10% padding
+  const getRange = (values, fallbackSpan = 10) => {
+    const valid = values.filter(v => typeof v === 'number' && !Number.isNaN(v))
+    if (!valid.length) {
+      return { min: 0, max: fallbackSpan }
+    }
+    let minVal = Math.min(...valid)
+    let maxVal = Math.max(...valid)
+    if (maxVal === minVal) {
+      const pad = Math.max(Math.abs(maxVal || 1) * 0.1, 1)
+      minVal = Math.max(0, minVal - pad)
+      maxVal = maxVal + pad
+    } else {
+      const span = maxVal - minVal
+      const pad = Math.max(span * 0.1, 1)
+      minVal = Math.max(0, minVal - pad)
+      maxVal = maxVal + pad
+    }
+    return { min: minVal, max: maxVal }
+  }
   
-  const maxSalary = Math.max(...salaries)
-  const maxRecruitCount = Math.max(...recruitCounts)
+  // 归一化函数 - 将值映射到0-100范围
+  const normalize = (value, min, max) => {
+    if (max === min) return 0
+    const normalized = ((value - min) / (max - min)) * 100
+    return Math.max(0, Math.min(100, normalized)) // 限制在0-100
+  }
   
-  // 标准化函数
-  const normalize = (value, max) => max > 0 ? (value / max) * 100 : 0
+  const salaries = jobs.map(j => j.avg_salary || 0)
+  const experiences = jobs.map(j => j.avg_experience || 0)
+  const educations = jobs.map(j => j.avg_education || 0)
+  const recruitCounts = jobs.map(j => j.job_in_city_cnt || 0)
+  const salaryStds = jobs.map(j => j.salary_std || 0)
+  const entropies = jobs.map(j => j.avg_shannon_entropy || 0)
+
+  // 对招聘人数做log压缩，避免几万 vs 几百差异过大
+  const recruitCountsTransformed = recruitCounts.map(c => Math.log10((c || 0) + 1))
+
+  const salaryRange = getRange(salaries, 100)
+  const experienceRange = getRange(experiences, 10)
+  const educationRange = getRange(educations, 10)
+  const countRange = getRange(recruitCountsTransformed, Math.log10(50000 + 1))
+  const stdRange = getRange(salaryStds, 50)
+  const entropyRange = getRange(entropies, 1)
   
   return jobs.map(job => ({
     name: job.job_title,
     value: [
-      normalize(job.salary_value, maxSalary),
-      job.experience_rank * 10,  // 经验rank是1-10，映射到0-100
-      job.education_rank * 10,   // 学历rank是1-10，映射到0-100
-      normalize(job.recruit_count, maxRecruitCount),
-      (cityLevelMap[job.city_level] || 1) * 10  // 城市等级映射到0-100
+      normalize(job.avg_salary || 0, salaryRange.min, salaryRange.max),
+      normalize(job.avg_experience || 0, experienceRange.min, experienceRange.max),
+      normalize(job.avg_education || 0, educationRange.min, educationRange.max),
+      normalize(Math.log10(((job.job_in_city_cnt || 0)) + 1), countRange.min, countRange.max),
+      normalize(job.salary_std || 0, stdRange.min, stdRange.max),
+      normalize(job.avg_shannon_entropy || 0, entropyRange.min, entropyRange.max)
     ],
     rawData: job
   }))
@@ -92,11 +126,12 @@ const updateChart = () => {
         return `
           <div style="padding: 8px;">
             <strong>${job.job_title}</strong><br/>
-            <span style="color: #666;">薪资：</span>${job.salary_value}K<br/>
-            <span style="color: #666;">经验层级：</span>${job.experience_rank}/10<br/>
-            <span style="color: #666;">学历层级：</span>${job.education_rank}/10<br/>
-            <span style="color: #666;">招聘人数：</span>${job.recruit_count}<br/>
-            <span style="color: #666;">城市等级：</span>${job.city_level}
+            <span style="color: #666;">平均薪资：</span>${(job.avg_salary || 0).toFixed(2)}K<br/>
+            <span style="color: #666;">薪资标准差：</span>${(job.salary_std || 0).toFixed(2)}K<br/>
+            <span style="color: #666;">平均经验：</span>${(job.avg_experience || 0).toFixed(2)}（层级）<br/>
+            <span style="color: #666;">平均学历：</span>${(job.avg_education || 0).toFixed(2)}（层级）<br/>
+            <span style="color: #666;">招聘人数：</span>${job.job_in_city_cnt || 0}<br/>
+            <span style="color: #666;">香农熵：</span>${(job.avg_shannon_entropy || 0).toFixed(3)}<br/>
           </div>
         `
       }
@@ -112,10 +147,11 @@ const updateChart = () => {
     radar: {
       indicator: [
         { name: '薪资水平', max: 100 },
-        { name: '经验要求', max: 100 },
-        { name: '学历要求', max: 100 },
+        { name: '平均经验', max: 100 },
+        { name: '平均学历', max: 100 },
         { name: '招聘人数', max: 100 },
-        { name: '城市等级', max: 100 }
+        { name: '薪资标准差', max: 100 },
+        { name: '香农熵', max: 100 }
       ],
       center: ['50%', '60%'],
       radius: '50%',

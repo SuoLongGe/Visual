@@ -10,8 +10,8 @@ class Config:
     DB_HOST = os.getenv('DB_HOST', 'localhost')
     DB_PORT = int(os.getenv('DB_PORT', 3306))
     DB_USER = os.getenv('DB_USER', 'root')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', '123456')  # 请根据实际情况修改
-    DB_NAME = os.getenv('DB_NAME', 'vision')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', 'hjy89607425')  # 请根据实际情况修改
+    DB_NAME = os.getenv('DB_NAME', 'visual')
     DB_CHARSET = 'utf8mb4'
     
     # API配置

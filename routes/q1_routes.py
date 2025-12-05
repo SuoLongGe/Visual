@@ -81,3 +81,14 @@ def get_industries():
         logger.error(f"获取行业类别失败: {e}")
         return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
 
+
+@q1_bp.route('/industry-scatter', methods=['GET'])
+def get_national_industry_scatter():
+    """获取全国行业散点数据"""
+    try:
+        scatter_data = q1_service.get_national_industry_scatter()
+        return ResponseBuilder.success("获取全国行业散点数据成功", scatter_data)
+    except Exception as e:
+        logger.error(f"获取全国行业散点数据失败: {e}")
+        return ResponseBuilder.internal_error("服务器内部错误", {"type": "INTERNAL_ERROR", "details": str(e)})
+
