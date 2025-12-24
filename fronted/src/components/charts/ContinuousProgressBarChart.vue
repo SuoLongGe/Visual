@@ -2,6 +2,11 @@
   <div class="continuous-progress-bar-chart">
     <h3 v-if="title" class="chart-title">{{ title }}</h3>
     <p v-if="description" class="chart-description">{{ description }}</p>
+    <div class="chart-legend">
+      <span class="legend-item"><i class="legend-color" style="background:#00B4D8"></i>招聘数量</span>
+      <span class="legend-item"><i class="legend-color" style="background:#5470c6"></i>学历要求</span>
+      <span class="legend-item"><i class="legend-color" style="background:#7B2CBF"></i>经验要求</span>
+    </div>
     <div ref="chartContainer" class="chart-container"></div>
   </div>
 </template>
@@ -63,7 +68,7 @@ const renderChart = () => {
 
   const container = chartContainer.value
   const containerWidth = container.clientWidth || 1000
-  const containerHeight = container.clientHeight || 600
+  const containerHeight = container.clientHeight || 520
 
   // 清除旧图表
   d3.select(container).selectAll('*').remove()
@@ -216,17 +221,17 @@ const renderChart = () => {
   
   // 更新X轴样式（科技感）
   xAxisGroup.selectAll('path')
-    .attr('stroke', '#00D9FF')
-    .attr('stroke-width', 1.5)
-    .style('filter', 'drop-shadow(0 0 2px #00D9FF)')
+    .attr('stroke', '#5470c6')
+    .attr('stroke-width', 1.2)
+    .style('filter', 'none')
   
   xAxisGroup.selectAll('line')
-    .attr('stroke', '#00D9FF')
+    .attr('stroke', '#e6eef8')
     .attr('stroke-width', 1)
-    .style('filter', 'drop-shadow(0 0 1px #00D9FF)')
+    .style('filter', 'none')
   
   xAxisGroup.selectAll('text')
-    .attr('fill', '#D4AF37')
+    .attr('fill', '#2c3e50')
     .attr('font-size', '11px')
     .attr('font-weight', '500')
   
@@ -235,7 +240,7 @@ const renderChart = () => {
     .attr('class', 'axis-label')
     .attr('x', chartWidth / 2)
     .attr('y', chartHeight + 50)
-    .attr('fill', '#D4AF37')
+    .attr('fill', '#2c3e50')
     .attr('font-size', '13px')
     .attr('font-weight', '500')
     .attr('text-anchor', 'middle')
@@ -248,18 +253,18 @@ const renderChart = () => {
   
   // 更新Y轴样式（科技感）
   yAxisGroup.selectAll('path')
-    .attr('stroke', '#00D9FF')
-    .attr('stroke-width', 1.5)
-    .style('filter', 'drop-shadow(0 0 2px #00D9FF)')
+    .attr('stroke', '#e6eef8')
+    .attr('stroke-width', 1)
+    .style('filter', 'none')
   
   yAxisGroup.selectAll('line')
-    .attr('stroke', '#00D9FF')
+    .attr('stroke', '#e6eef8')
     .attr('stroke-width', 1)
-    .style('filter', 'drop-shadow(0 0 1px #00D9FF)')
+    .style('filter', 'none')
   
   yAxisGroup.selectAll('text')
     .style('font-size', '12px')
-    .style('fill', '#D4AF37')
+    .style('fill', '#2c3e50')
     .style('font-weight', '500')
 
   // 添加网格线
@@ -568,8 +573,12 @@ onUnmounted(() => {
 
 .chart-container {
   width: 100%;
-  height: 600px;
-  min-height: 400px;
+  height: 520px;
+  min-height: 360px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(250,250,252,0.98));
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }
 
 .chart-title {
@@ -585,6 +594,20 @@ onUnmounted(() => {
   line-height: 1.6;
   font-size: 14px;
 }
+
+.chart-legend {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 2;
+  font-size: 13px;
+  color: #444;
+}
+.legend-item { display:flex; align-items:center; gap:6px; padding:4px 6px; background: rgba(255,255,255,0.6); border-radius:6px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
+.legend-color { width:12px; height:12px; border-radius:3px; display:inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
 
 /* 进度条动画效果 */
 :deep(.progress-fill) {

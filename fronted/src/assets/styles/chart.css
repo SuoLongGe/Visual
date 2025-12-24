@@ -122,3 +122,34 @@
   margin-bottom: 15px;
 }
 
+/* DEBUG helpers - temporary: outlines to find blocking/overlay elements */
+.debug-outline .content-glass,
+.debug-outline .content-wrapper,
+.debug-outline .tabs-container,
+.debug-outline .top-nav,
+.debug-outline .rose-wrapper,
+.debug-outline .industry-nebula,
+.debug-outline .hot-cards {
+  outline: 2px dashed rgba(255, 0, 128, 0.6) !important;
+}
+
+/* ====== 强力覆盖：确保 RoseNestedPolar 不被任何页面层遮挡 ======
+   只在调试/修复遮挡问题时使用，属于激进手段（如需回退，删除下段样式）
+*/
+body .rose-nested-polar,
+body .rose-nested-polar * {
+  z-index: 2147483647 !important;
+  position: relative !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+/* 同时确保嵌入的 ECharts 容器也可超出父容器显示 */
+body .rose-nested-polar .chart-container {
+  overflow: visible !important;
+  max-width: none !important;
+  width: 80vw !important;
+}
+

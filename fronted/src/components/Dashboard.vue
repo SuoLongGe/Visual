@@ -28,7 +28,7 @@
 
       <!-- 内容区域 - 玻璃态效果 -->
       <div class="content-wrapper">
-        <div class="content-glass" :class="{ 'home-background': activeTab === 'home' }">
+      <div class="content-glass" :class="{ 'home-background': activeTab === 'home', 'no-card': activeTab === 'q5' }">
           <!-- 内容切换动画 -->
           <transition name="fade-slide" mode="out-in">
             <!-- 首页 -->
@@ -47,12 +47,12 @@
             </div>
 
             <!-- 三维柱状图 -->
-            <div v-else-if="activeTab === '3d-chart'" key="q3" class="tab-content">
+            <div v-else-if="activeTab === '3d-chart'" key="3d-chart" class="tab-content">
               <Q3Tab />
             </div>
 
                   <!-- Q4 城市等级热力图 -->
-            <div v-if="activeTab === 'q4'" class="tab-content active">
+            <div v-else-if="activeTab === 'q4'" key="q4" class="tab-content active">
               <HeatmapTab />
             </div>
 
@@ -291,6 +291,7 @@ const getIndicatorStyle = () => {
   position: relative;
   margin-top: 88px; /* 为固定导航栏留出空间 */
   padding: 0 10px 10px;
+  overflow: visible !important;
 }
 
 .content-glass {
@@ -328,6 +329,16 @@ const getIndicatorStyle = () => {
   z-index: 0;
   pointer-events: none;
 }
+
+/* 当 Q5 页面显示时，去掉卡片背景让玫瑰图不被包裹 */
+.content-glass.no-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 40px 0 !important;
+  overflow: visible !important;
+}
+.content-glass.no-card::before { display: none !important; }
 
 .tab-content {
   position: relative;
