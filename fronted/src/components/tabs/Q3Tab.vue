@@ -4,22 +4,30 @@
     <div class="top-section">
       <!-- 视图1：三维柱状图 -->
       <div class="chart-section left-section">
-      <h2>三维柱状对比图</h2>
-      <p class="chart-description">
-        展示不同工作经验与学历组合下的平均薪资分布
-        X轴：工作经验 | Y轴：学历层次 | Z轴：平均薪资
-        <br/>
-        <strong>💡 提示：点击3D图表中的柱体，将自动加载对应的箱线图分析</strong>
-      </p>
+        <h2>三维柱状对比图</h2>
+        <p class="chart-description">
+          展示不同工作经验与学历组合下的平均薪资分布
+          X轴：工作经验 | Y轴：学历层次 | Z轴：平均薪资
+          <br/>
+          <strong>💡 提示：点击3D图表中的柱体，将自动加载对应的箱线图分析</strong>
+          <br/>
+          <strong>🖐 手势控制：</strong> 可在下方按钮中手动开启或关闭摄像头手势交互
+        </p>
+
+        <!-- 手动启停摄像头的按钮 -->
+        <button class="btn" type="button" @click="toggleGesture">
+          {{ gestureEnabled ? '关闭手势摄像头' : '开启手势摄像头' }}
+        </button>
       
-      <div class="api-section">
-        <Chart3D 
-          :data="chartData?.data"
-          :loading="loading"
-          :error="error"
-          @bar-click="handleBarClick"
-        />
-      </div>
+        <div class="api-section">
+          <Chart3D 
+            :data="chartData?.data"
+            :loading="loading"
+            :error="error"
+            :gesture-enabled="gestureEnabled"
+            @bar-click="handleBarClick"
+          />
+        </div>
       </div>
       
       <!-- 视图2：箱线图 -->
@@ -70,6 +78,7 @@ const { data: chartData, loading, error, execute } = useFetchData(get3DSalaryDat
 const { data: parallelData, loading: parallelLoading, error: parallelError, execute: executeParallel } = useFetchData(getParallelCoordinatesData)
 const selectedExperience = ref('')
 const selectedEducation = ref('')
+const gestureEnabled = ref(false)
 
 // 组件挂载时自动加载数据
 onMounted(async () => {
@@ -101,6 +110,10 @@ const handleBarClick = (data) => {
   
   // 可以在这里添加提示或动画效果
   // 例如：显示一个提示消息，说明已选择该组合
+}
+
+const toggleGesture = () => {
+  gestureEnabled.value = !gestureEnabled.value
 }
 </script>
 
