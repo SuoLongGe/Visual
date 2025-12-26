@@ -31,13 +31,34 @@
         <div class="content-glass" :class="{ 'home-background': activeTab === 'home' }">
           <!-- 内容切换动画 -->
           <transition name="fade-slide" mode="out-in">
-            <div :key="activeTab" :class="['tab-content', { active: activeTab === 'q4' }]">
-              <HomeTab v-if="activeTab === 'home'" :on-switch-tab="switchTab" />
-              <Q1Tab v-else-if="activeTab === 'q1'" />
-              <Q2Tab v-else-if="activeTab === 'q2'" />
-              <Q3Tab v-else-if="activeTab === '3d-chart'" />
-              <HeatmapTab v-else-if="activeTab === 'q4'" />
-              <Q5Tab v-else-if="activeTab === 'q5'" />
+            <!-- 首页 -->
+            <div v-if="activeTab === 'home'" key="home" class="tab-content">
+              <HomeTab :on-switch-tab="switchTab" />
+            </div>
+
+            <!-- Q1 职位差异度分析 -->
+            <div v-else-if="activeTab === 'q1'" key="q1" class="tab-content">
+              <Q1Tab />
+            </div>
+
+            <!-- Q2 职位画像分析 -->
+            <div v-else-if="activeTab === 'q2'" key="q2" class="tab-content">
+              <Q2Tab />
+            </div>
+
+            <!-- 三维柱状图 -->
+            <div v-else-if="activeTab === '3d-chart'" key="q3" class="tab-content">
+              <Q3Tab />
+            </div>
+
+                  <!-- Q4 城市等级热力图 -->
+            <div v-if="activeTab === 'q4'" class="tab-content active">
+              <HeatmapTab />
+            </div>
+
+            <!-- Q5 行业发展动态与新兴职位 -->
+            <div v-else-if="activeTab === 'q5'" key="q5" class="tab-content">
+              <Q5Tab />
             </div>
           </transition>
         </div>

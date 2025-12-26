@@ -11,535 +11,694 @@
     
     <div v-if="hasData" class="chart-wrapper">
       <div ref="chartContainer" id="3d-chart-container" class="chart-container"></div>
+
+      <div class="gesture-status" v-if="gestureStatus">
+        <span class="status-icon">{{ statusIcon }}</span>
+        {{ gestureStatus }}
+      </div>
+
+      <div
+        v-if="cursor.visible"
+        class="hand-cursor"
+        :class="{
+          'pinching': cursor.isPinching,
+          'hovering': cursor.hoverTargetIndex !== -1
+        }"
+        :style="{ transform: `translate3d(${cursor.x}px, ${cursor.y}px, 0)` }"
+      >
+        <div class="cursor-ring"></div>
+        <div v-if="cursor.isClicking" class="click-ripple"></div>
+      </div>
+
+      <video
+        ref="gestureVideo"
+        class="gesture-video"
+        autoplay
+        playsinline
+        muted
+      ></video>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onUnmounted, nextTick, watch, reactive } from 'vue'
 import * as echarts from 'echarts'
 import 'echarts-gl'
 
 const props = defineProps({
-  data: {
-    type: Object,
-    default: null
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  },
-  error: {
-    type: String,
-    default: null
-  }
+  data: { type: Object, default: null },
+  loading: { type: Boolean, default: false },
+  error: { type: String, default: null },
+  gestureEnabled: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['bar-click'])
 
+// --- DOM & Chart 引用 ---
 const chartContainer = ref(null)
 const hasData = ref(false)
-const summaryData = ref(null)
 let chart3D = null
 let resizeHandler = null
+const experiences = ref([])
+const educations = ref([])
+
+// --- 手势与视频状态 ---
+const gestureVideo = ref(null)
+const gestureStatus = ref('')
+const statusIcon = ref('✋')
+let handsInstance = null
+let gestureStream = null
+let animationFrameId = null
+
+// --- 物理平滑层 (核心性能优化) ---
+// 目标值：手势控制这里
+const targetState = { alpha: 30, beta: 40, distance: 250 }
+// 当前值：渲染循环每一帧逼近这里
+const currentState = { alpha: 30, beta: 40, distance: 250 }
+// 平滑系数：越小越顺滑 (0.15 是黄金值)
+const SMOOTHING = 0.15
+
+// 光标 UI 状态 (保留响应式以驱动 CSS 类名)
+const cursor = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  isPinching: false,
+  isClicking: false,
+  hoverTargetIndex: -1 // 当前瞄准的柱子索引
+})
+
+// 防抖与逻辑变量
+let lastHighlightedIndex = -1
+let lastTip = { x: 0, y: 0 }
+let isRotationActive = false
+let wasPinching = false // 记录上一帧是否在捏合，用于检测捏合开始
+let lastPinchTime = 0 // 上次捏合触发的时间，用于防抖
+
+// ---------------- 数据监听与初始化 ----------------
 
 watch(() => props.data, (newData) => {
-  if (newData && newData.experiences && newData.educations) {
+  if (newData && newData.experiences) {
     hasData.value = true
-    nextTick(() => {
-      setTimeout(() => {
-        render3DChart(newData)
-        calculateSummary(newData)
-      }, 100)
-    })
-  } else {
-    hasData.value = false
+    experiences.value = newData.experiences
+    educations.value = newData.educations
+    nextTick(() => setTimeout(() => render3DChart(newData), 100))
   }
-}, { immediate: true, deep: true })
+}, { deep: true })
+
+watch(() => props.gestureEnabled, (enabled) => {
+  enabled ? initGestureControl() : stopGestureControl()
+})
 
 const render3DChart = (data) => {
   const container = chartContainer.value || document.getElementById('3d-chart-container')
-  if (!container) {
-    console.error('图表容器不存在')
-    return
-  }
-  
-  if (chart3D) {
-    chart3D.dispose()
-  }
-  
+  if (!container) return
+  if (chart3D) chart3D.dispose()
   chart3D = echarts.init(container)
   
-  const experiences = data.experiences || []
-  const educations = data.educations || []
   const data3d = data.data_3d || []
-  
-  const scatterData = data3d.map(item => [item[0], item[1], item[2]])
-  
-  // 计算容器尺寸以自适应比例
-  const containerWidth = container.clientWidth
-  const containerHeight = container.clientHeight
-  const aspectRatio = containerWidth / containerHeight
-  
-  // 根据容器大小动态调整盒子尺寸
-  const boxWidth = Math.min(200, containerWidth * 0.4)
-  const boxDepth = Math.min(100, containerWidth * 0.2)
-  const boxHeight = Math.min(200, containerHeight * 0.35)
-  
-  const option = {
+  const scatterData = data3d.map((item, idx) => ({
+    value: item,
+    itemIndex: idx
+  }))
+
+  chart3D.setOption({
     backgroundColor: '#fafafa',
-    title: {
-      text: '经验-学历-薪资 3D 分析',
-      subtext: '点击柱体查看详细分析 | 鼠标拖动旋转视角',
-      left: 'center',
-      top: 15,
-      textStyle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#2c3e50'
-      },
-      subtextStyle: {
-        fontSize: 12,
-        color: '#7f8c8d'
-      }
-    },
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: 'rgba(0, 0, 0, 0.85)',
-      borderColor: '#409EFF',
-      borderWidth: 1,
-      textStyle: {
-        color: '#fff',
-        fontSize: 13
-      },
-      formatter: function(params) {
-        const expIdx = Math.round(params.value[0])
-        const eduIdx = Math.round(params.value[1])
-        const salary = params.value[2].toFixed(2)
-        const exp = experiences[expIdx] || '未知'
-        const edu = educations[eduIdx] || '未知'
-        return `
-          <div style="padding: 8px;">
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #409EFF;">
-              ${exp} × ${edu}
-            </div>
-            <div style="margin: 4px 0;">
-              <span style="color: #67C23A;">💰 平均薪资：</span>
-              <span style="font-size: 16px; font-weight: bold;">${salary}K</span>
-            </div>
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px; color: #aaa;">
-              💡 点击柱体查看该组合的详细分布
-            </div>
-          </div>
-        `
-      }
-    },
-    visualMap: {
-      show: true,
-      dimension: 2,
-      min: 0,
-      max: Math.max(...data3d.map(item => item[2])),
-      inRange: {
-        color: [
-          '#1a237e', '#283593', '#303f9f', '#3949ab', '#3f51b5',
-          '#5c6bc0', '#7986cb', '#9fa8da', '#c5cae9', 
-          '#64b5f6', '#42a5f5', '#2196f3', '#1e88e5', 
-          '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#f44336'
-        ]
-      },
-      calculable: true,
-      precision: 2,
-      text: ['高薪', '低薪'],
-      textStyle: {
-        color: '#333',
-        fontSize: 12
-      },
-      left: 'left',
-      bottom: '5%',
-      itemWidth: 20,
-      itemHeight: 140
-    },
-    xAxis3D: {
-      type: 'category',
-      data: experiences,
-      name: '工作经验',
-      nameTextStyle: {
-        color: '#000',
-        fontSize: 16,
-        fontWeight: 'bold',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: [4, 8],
-        borderRadius: 4
-      },
-      nameGap: 35,
-      axisLabel: {
-        rotate: -45,
-        interval: 0,
-        fontSize: 13,
-        color: '#000',
-        fontWeight: '600',
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
-        padding: [3, 6],
-        borderRadius: 3
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#333',
-          width: 3
-        }
-      },
-      axisTick: {
-        lineStyle: {
-          color: '#333',
-          width: 2
-        },
-        length: 6
-      }
-    },
-    yAxis3D: {
-      type: 'category',
-      data: educations,
-      name: '学历层次',
-      nameTextStyle: {
-        color: '#000',
-        fontSize: 16,
-        fontWeight: 'bold',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: [4, 8],
-        borderRadius: 4
-      },
-      nameGap: 35,
-      axisLabel: {
-        interval: 0,
-        fontSize: 13,
-        rotate: 0,
-        color: '#000',
-        fontWeight: '600',
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
-        padding: [3, 6],
-        borderRadius: 3,
-        formatter: function(value) {
-          return value
-        }
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#333',
-          width: 3
-        }
-      },
-      axisTick: {
-        lineStyle: {
-          color: '#333',
-          width: 2
-        },
-        length: 6
-      }
-    },
-    zAxis3D: {
-      type: 'value',
-      name: '平均薪资(K)',
-      nameTextStyle: {
-        color: '#000',
-        fontSize: 16,
-        fontWeight: 'bold',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        padding: [4, 8],
-        borderRadius: 4
-      },
-      nameGap: 30,
-      axisLabel: {
-        formatter: '{value}K',
-        fontSize: 13,
-        color: '#000',
-        fontWeight: '600',
-        backgroundColor: 'rgba(255, 255, 255, 0.85)',
-        padding: [3, 6],
-        borderRadius: 3
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#333',
-          width: 3
-        }
-      },
-      axisTick: {
-        lineStyle: {
-          color: '#333',
-          width: 2
-        },
-        length: 6
-      },
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(51, 51, 51, 0.25)',
-          width: 1.5
-        }
-      }
-    },
     grid3D: {
-      boxWidth: boxWidth,
-      boxDepth: boxDepth,
-      boxHeight: boxHeight,
-      environment: 'auto',
+      boxWidth: 200, boxDepth: 100, boxHeight: 150,
       viewControl: {
-        projection: 'perspective',
         autoRotate: false,
-        autoRotateDirection: 'cw',
-        autoRotateSpeed: 8,
-        rotateSensitivity: 1.5,
-        zoomSensitivity: 1.2,
-        panSensitivity: 1,
-        distance: 250,
-        alpha: 25,
-        beta: 40,
-        minAlpha: 5,
-        maxAlpha: 90,
-        minDistance: 150,
-        maxDistance: 400,
-        animation: true,
-        animationDurationUpdate: 1000,
-        animationEasingUpdate: 'cubicOut'
-      },
-      light: {
-        main: {
-          intensity: 1.5,
-          shadow: true,
-          shadowQuality: 'high',
-          alpha: 30,
-          beta: 40
-        },
-        ambient: {
-          intensity: 0.6
-        },
-        ambientCubemap: {
-          texture: null,
-          diffuseIntensity: 0.5,
-          specularIntensity: 0.5
-        }
-      },
-      postEffect: {
-        enable: true,
-        bloom: {
-          enable: false
-        },
-        SSAO: {
-          enable: true,
-          quality: 'medium',
-          radius: 2,
-          intensity: 1
-        }
-      },
-      temporalSuperSampling: {
-        enable: true
+        distance: currentState.distance,
+        alpha: currentState.alpha,
+        beta: currentState.beta,
+        minDistance: 50,
+        maxDistance: 600,
+        // 关键：关闭 ECharts 自带动画，完全由外部循环接管
+        animation: false
       }
     },
-    series: [
-      {
-        type: 'bar3D',
-        data: scatterData.map(function(item, index) {
-          return {
-            value: [item[0], item[1], 0],
-            targetValue: item[2],
-            itemIndex: index
-          }
-        }),
-        shading: 'realistic',
-        realisticMaterial: {
-          metalness: 0.3,
-          roughness: 0.5
-        },
-        label: {
-          show: false,
-          distance: 2,
-          formatter: function(param) {
-            return param.value[2].toFixed(1) + 'K'
-          },
-          textStyle: {
-            fontSize: 10,
-            color: '#333',
-            fontWeight: 'bold'
-          }
-        },
-        itemStyle: {
-          opacity: 0.92,
-          borderWidth: 0.5,
-          borderColor: 'rgba(255, 255, 255, 0.3)'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            textStyle: {
-              fontSize: 12,
-              color: '#fff',
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              padding: 4,
-              borderRadius: 3
-            }
-          },
-          itemStyle: {
-            opacity: 1,
-            borderWidth: 2,
-            borderColor: '#FFD700'
-          }
-        },
-        animationDuration: 2000,
-        animationEasing: 'elasticOut',
-        animationDelay: function(idx) {
-          return idx * 20
-        }
-      }
-    ]
-  }
-  
-  chart3D.setOption(option)
-  
-  // 柱体生长动画
-  setTimeout(() => {
-    const updatedData = scatterData.map(function(item) {
-      return {
-        value: [item[0], item[1], item[2]]
-      }
-    })
-    
-    chart3D.setOption({
-      series: [{
-        data: updatedData
-      }]
-    })
-  }, 100)
-  
-  // 添加点击事件
-  chart3D.on('click', function(params) {
-    if (params.componentType === 'series' && params.seriesType === 'bar3D') {
-      const expIdx = Math.round(params.value[0])
-      const eduIdx = Math.round(params.value[1])
-      const exp = experiences[expIdx]
-      const edu = educations[eduIdx]
+    xAxis3D: { type: 'category', data: experiences.value, name: '工作经验' },
+    yAxis3D: { type: 'category', data: educations.value, name: '学历' },
+    zAxis3D: { type: 'value', name: '薪资(K)' },
+    series: [{
+      type: 'bar3D',
+      data: scatterData,
+      shading: 'realistic',
+      // 高亮样式配置
+      emphasis: {
+        label: { show: true, textStyle: { fontSize: 14, color: '#fff', backgroundColor: 'rgba(0,0,0,0.7)', padding: 4, borderRadius: 4 } },
+        itemStyle: { color: '#ff4d4f', opacity: 1 } // 红色高亮
+      },
+      itemStyle: { color: '#409EFF', opacity: 0.9 }
+    }]
+  })
+
+  // 启动高频渲染循环
+  startRenderLoop()
+
+  // 监听鼠标 hover 事件，用于获取当前 hover 的柱子索引
+  chart3D.on('mouseover', (params) => {
+    if (params.dataIndex !== undefined && params.seriesIndex === 0) {
+      currentHoveredIndex = params.dataIndex
+      cursor.hoverTargetIndex = params.dataIndex
       
-      if (exp && edu) {
-        // 触发事件，传递经验和学历
-        emit('bar-click', {
-          experience: exp,
-          education: edu,
-          salary: params.value[2]
-        })
+      // 立即更新高亮状态
+      if (params.dataIndex !== lastHighlightedIndex) {
+        if (lastHighlightedIndex !== -1) {
+          chart3D.dispatchAction({ type: 'downplay', seriesIndex: 0, dataIndex: lastHighlightedIndex })
+        }
+        chart3D.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: params.dataIndex })
+        chart3D.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: params.dataIndex })
+        lastHighlightedIndex = params.dataIndex
       }
     }
   })
-  
-  // 窗口大小改变时重新调整图表
-  if (resizeHandler) {
-    window.removeEventListener('resize', resizeHandler)
-  }
-  
-  resizeHandler = () => {
-    if (chart3D) {
-      chart3D.resize()
-    }
-  }
-  
+
+  chart3D.on('mouseout', () => {
+    // 鼠标移出时不清除，保持最后一次 hover 的索引
+  })
+
+  // 鼠标点击兜底
+  chart3D.on('click', (params) => {
+    if (params.data && params.dataIndex !== undefined) {
+       triggerClick(params.dataIndex, params.data.value)
+      }
+  })
+
+  resizeHandler = () => chart3D && chart3D.resize()
   window.addEventListener('resize', resizeHandler)
 }
 
-const calculateSummary = (data) => {
-  summaryData.value = {
-    summary: {
-      experience_count: data.experiences.length,
-      education_count: data.educations.length,
-      data_points: data.data_3d.length,
-      max_salary: Math.max(...data.data_3d.map(item => item[2])).toFixed(2),
-      min_salary: Math.min(...data.data_3d.filter(item => item[2] > 0).map(item => item[2])).toFixed(2)
-    },
-    experiences: data.experiences,
-    educations: data.educations
+// ---------------- 渲染循环 (解决卡顿的核心) ----------------
+const startRenderLoop = () => {
+  if (animationFrameId) cancelAnimationFrame(animationFrameId)
+
+  const loop = () => {
+    if (!chart3D) return
+
+    // 1. 物理插值 (Lerp)：让当前视角平滑飞向目标视角
+    currentState.alpha += (targetState.alpha - currentState.alpha) * SMOOTHING
+    currentState.beta += (targetState.beta - currentState.beta) * SMOOTHING
+    currentState.distance += (targetState.distance - currentState.distance) * SMOOTHING
+
+    // 2. 只有当数值有明显变化时才调用 setOption，减少 GPU 负担
+    if (
+      Math.abs(targetState.alpha - currentState.alpha) > 0.01 ||
+      Math.abs(targetState.beta - currentState.beta) > 0.01 ||
+      Math.abs(targetState.distance - currentState.distance) > 0.1
+    ) {
+      chart3D.setOption({
+        grid3D: {
+          viewControl: {
+            alpha: currentState.alpha,
+            beta: currentState.beta,
+            distance: currentState.distance
+          }
+        }
+      })
+    }
+    animationFrameId = requestAnimationFrame(loop)
+  }
+  loop()
+}
+
+// ---------------- 手势识别逻辑 ----------------
+
+const loadScript = (src) => new Promise((resolve) => {
+  if (document.querySelector(`script[src="${src}"]`)) return resolve()
+  const script = document.createElement('script'); script.src = src; script.onload = resolve; document.head.appendChild(script);
+})
+
+const initGestureControl = async () => {
+  if (handsInstance) return
+  await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js')
+
+  const videoEl = gestureVideo.value
+  gestureStream = await navigator.mediaDevices.getUserMedia({
+    video: { width: 640, height: 480, facingMode: 'user' }
+  })
+  videoEl.srcObject = gestureStream
+  videoEl.play()
+
+  handsInstance = new window.Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` })
+  handsInstance.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 0, // 0 = Lite模型，速度最快，延迟最低
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+  })
+
+  handsInstance.onResults(handleGestures)
+
+  const processFrame = async () => {
+    if (handsInstance && videoEl && !videoEl.paused) await handsInstance.send({ image: videoEl })
+    if (props.gestureEnabled) requestAnimationFrame(processFrame)
+  }
+  processFrame()
+}
+
+const stopGestureControl = () => {
+  if (handsInstance) handsInstance.close()
+  if (gestureStream) gestureStream.getTracks().forEach(t => t.stop())
+  if (animationFrameId) cancelAnimationFrame(animationFrameId)
+  handsInstance = null
+}
+
+// 辅助距离计算
+const getDist = (lm, i, j) => Math.hypot(lm[i].x - lm[j].x, lm[i].y - lm[j].y)
+
+const handleGestures = (results) => {
+  // 如果手移开了
+  if (!results.multiHandLandmarks?.length) {
+    cursor.visible = false
+    isRotationActive = false
+    clearHighlight() // 取消高亮
+    return
+  }
+
+  const lm = results.multiHandLandmarks[0]
+  const palmSize = getDist(lm, 0, 9) // 归一化基准
+
+  // --- 1. 更新光标位置 (带平滑) ---
+  const rect = chartContainer.value.getBoundingClientRect()
+  const rawX = (1 - lm[8].x) * rect.width // 镜像翻转
+  const rawY = lm[8].y * rect.height
+  cursor.x += (rawX - cursor.x) * 0.5
+  cursor.y += (rawY - cursor.y) * 0.5
+  cursor.visible = true
+
+  // --- 2. 关键：每一帧都全局检测悬浮目标 (不管是否捏合) ---
+  detectHoverTarget()
+
+  // --- 3. 手势判定 ---
+  const pinchDist = getDist(lm, 4, 8)
+  const dIndex = getDist(lm, 8, 0)
+  const dMiddle = getDist(lm, 12, 0)
+  const avgSpread = (dIndex + dMiddle + getDist(lm,16,0) + getDist(lm,20,0)) / 4
+
+  const isPinching = pinchDist < palmSize * 0.15
+  // 指向：食指伸直，中指弯曲
+  const isPointing = !isPinching && (dIndex > palmSize * 1.0) && (dMiddle < dIndex * 0.8)
+  const isAllOpen = avgSpread > palmSize * 1.3
+  const isFist = avgSpread < palmSize * 0.85
+
+  // --- 4. 逻辑分发 (捏合优先级最高) ---
+  if (isPinching) {
+    statusIcon.value = '👌'
+    gestureStatus.value = '已选中 (捏合)'
+    cursor.isPinching = true
+    isRotationActive = false
+
+    // 关键修复：只在捏合状态从 false 变为 true 时触发一次，并添加防抖（至少间隔 500ms）
+    const now = Date.now()
+    if (!wasPinching && (now - lastPinchTime > 500)) {
+      // 确保在捏合时也检测一次目标（因为捏合时手可能稍微移动）
+      detectHoverTarget()
+      executePinchSelection()
+      lastPinchTime = now
+    }
+    wasPinching = true
+
+  } else {
+    cursor.isPinching = false
+    wasPinching = false
+
+    if (isPointing) {
+      statusIcon.value = '☝️'
+      gestureStatus.value = '旋转模式'
+
+      if (!isRotationActive) {
+        lastTip = { x: lm[8].x, y: lm[8].y }
+        isRotationActive = true
+      } else {
+        const dx = lm[8].x - lastTip.x
+        const dy = lm[8].y - lastTip.y
+        // 旋转灵敏度
+        const ROTATE_SPEED = 200
+        targetState.beta  += dx * ROTATE_SPEED
+        targetState.alpha += dy * ROTATE_SPEED
+        targetState.alpha = Math.max(0, Math.min(90, targetState.alpha)) // 限制俯仰角
+        lastTip = { x: lm[8].x, y: lm[8].y }
+      }
+    } else if (isAllOpen) {
+      statusIcon.value = '🖐'
+      gestureStatus.value = '放大 (靠近)'
+      isRotationActive = false
+      targetState.distance = Math.max(50, targetState.distance - 4)
+    } else if (isFist) {
+      statusIcon.value = '✊'
+      gestureStatus.value = '缩小 (远离)'
+      isRotationActive = false
+      targetState.distance = Math.min(600, targetState.distance + 4)
+    } else {
+      statusIcon.value = '⏳'
+      gestureStatus.value = '待机'
+      isRotationActive = false
+    }
   }
 }
 
-onUnmounted(() => {
-  if (chart3D) {
-    chart3D.dispose()
-    chart3D = null
+// 存储当前 hover 的索引（通过事件监听获取）
+let currentHoveredIndex = -1
+
+// --- 悬浮检测 (使用模拟鼠标事件) ---
+const detectHoverTarget = () => {
+  if (!chart3D || !chartContainer.value) return
+
+  const x = cursor.x
+  const y = cursor.y
+
+  // 方法1：使用 ECharts 的 zrender 实例直接触发 hover 检测
+  const zr = chart3D.getZr()
+  if (zr) {
+    // 使用 zrender 的 findHover 方法
+    const hoverResult = zr.handler.findHover(x, y)
+    
+    if (hoverResult && hoverResult.target) {
+      // 尝试从图形元素中提取数据索引
+      let foundIndex = -1
+      
+      // 方法1：直接从 target 获取
+      if (hoverResult.target.dataIndex !== undefined) {
+        foundIndex = hoverResult.target.dataIndex
+      }
+      // 方法2：从 __ecComponentInfo 获取
+      else if (hoverResult.target.__ecComponentInfo) {
+        foundIndex = hoverResult.target.__ecComponentInfo.dataIndex
+      }
+      // 方法3：从父元素获取
+      else if (hoverResult.target.parent && hoverResult.target.parent.dataIndex !== undefined) {
+        foundIndex = hoverResult.target.parent.dataIndex
+      }
+      
+      if (foundIndex !== -1 && foundIndex !== lastHighlightedIndex) {
+        cursor.hoverTargetIndex = foundIndex
+        currentHoveredIndex = foundIndex
+        
+        // 更新高亮状态
+        if (lastHighlightedIndex !== -1) {
+          chart3D.dispatchAction({ type: 'downplay', seriesIndex: 0, dataIndex: lastHighlightedIndex })
+          chart3D.dispatchAction({ type: 'hideTip' })
+        }
+
+        chart3D.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: foundIndex })
+        chart3D.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: foundIndex })
+
+        lastHighlightedIndex = foundIndex
+        return // 成功找到，不需要执行备用方法
+      }
+    }
   }
   
-  if (resizeHandler) {
-    window.removeEventListener('resize', resizeHandler)
-    resizeHandler = null
+  // 方法2：如果 zrender 方法不工作，使用模拟鼠标事件
+  const canvas = chartContainer.value.querySelector('canvas')
+  if (canvas) {
+    const rect = chartContainer.value.getBoundingClientRect()
+    
+    // 创建鼠标移动事件
+    const mouseMoveEvent = new MouseEvent('mousemove', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: rect.left + x,
+      clientY: rect.top + y,
+      button: 0
+    })
+    
+    canvas.dispatchEvent(mouseMoveEvent)
+    
+    // 如果事件成功触发了 hover，使用 currentHoveredIndex
+    if (currentHoveredIndex !== -1 && currentHoveredIndex !== lastHighlightedIndex) {
+      cursor.hoverTargetIndex = currentHoveredIndex
+      
+      if (lastHighlightedIndex !== -1) {
+        chart3D.dispatchAction({ type: 'downplay', seriesIndex: 0, dataIndex: lastHighlightedIndex })
+        chart3D.dispatchAction({ type: 'hideTip' })
+      }
+
+      chart3D.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: currentHoveredIndex })
+      chart3D.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: currentHoveredIndex })
+
+      lastHighlightedIndex = currentHoveredIndex
+      return
+        }
+      }
+
+  // 方法2：如果方法1不工作，使用数据坐标匹配（备用方案）
+  // 这个方法通过将屏幕坐标转换为数据坐标，然后匹配最近的数据点
+  const series = chart3D.getOption().series[0]
+  if (series && series.data) {
+    const data = series.data
+    let nearestIndex = -1
+    let minDist = Infinity
+
+    try {
+      // 尝试使用 convertFromPixel 将屏幕坐标转换为数据坐标
+      // 对于 3D 图表，我们需要指定正确的坐标系
+      const dataCoord = chart3D.convertFromPixel({ seriesIndex: 0, coordSys: 'grid3D' }, [x, y])
+      
+      if (dataCoord && Array.isArray(dataCoord) && dataCoord.length >= 2) {
+        const targetExpIdx = Math.round(dataCoord[0])
+        const targetEduIdx = Math.round(dataCoord[1])
+
+        // 在数据中找到最接近的点
+        for (let i = 0; i < data.length; i++) {
+          const val = data[i].value
+          if (!val || !Array.isArray(val) || val.length < 3) continue
+
+          const itemExpIdx = Math.round(val[0])
+          const itemEduIdx = Math.round(val[1])
+          
+          // 计算数据空间的距离（只比较 x 和 y 维度，忽略 z）
+          const dx = targetExpIdx - itemExpIdx
+          const dy = targetEduIdx - itemEduIdx
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          
+          // 如果距离很近（在同一个格子内），就认为是这个点
+          if (dist < 0.3 && dist < minDist) {
+            minDist = dist
+            nearestIndex = i
+          }
+        }
+      }
+    } catch (e) {
+      // 如果 convertFromPixel 失败，尝试使用更简单的方法
+      // 直接遍历所有数据点，使用屏幕坐标估算距离
+      const MAGNET_RADIUS = cursor.isPinching ? 120 : 80
+      
+      for (let i = 0; i < data.length; i++) {
+        const val = data[i].value
+        if (!val || !Array.isArray(val) || val.length < 3) continue
+
+        try {
+          // 尝试使用 convertToPixel（虽然之前失败了，但可能在某些情况下可以工作）
+          const pos = chart3D.convertToPixel({ seriesIndex: 0, coordSys: 'grid3D' }, val)
+          if (pos && Array.isArray(pos) && pos.length >= 2) {
+            const dx = pos[0] - x
+            const dy = pos[1] - y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            if (dist < MAGNET_RADIUS && dist < minDist) {
+              minDist = dist
+              nearestIndex = i
+            }
+          }
+        } catch (e2) {
+          // 忽略错误，继续下一个点
+      }
+    }
+    }
+
+    // 如果找到了目标，更新状态
+    if (nearestIndex !== -1) {
+      cursor.hoverTargetIndex = nearestIndex
+      currentHoveredIndex = nearestIndex
+
+      // Diff 优化：仅在目标改变时调用 dispatchAction
+      if (nearestIndex !== lastHighlightedIndex) {
+        if (lastHighlightedIndex !== -1) {
+          chart3D.dispatchAction({ type: 'downplay', seriesIndex: 0, dataIndex: lastHighlightedIndex })
+          chart3D.dispatchAction({ type: 'hideTip' })
+        }
+
+        chart3D.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: nearestIndex })
+        chart3D.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: nearestIndex })
+
+        lastHighlightedIndex = nearestIndex
+      }
+    } else {
+      // 如果没有找到目标，清除高亮
+      if (lastHighlightedIndex !== -1) {
+        chart3D.dispatchAction({ type: 'downplay', seriesIndex: 0, dataIndex: lastHighlightedIndex })
+        chart3D.dispatchAction({ type: 'hideTip' })
+        lastHighlightedIndex = -1
+        cursor.hoverTargetIndex = -1
+      }
+    }
   }
+}
+
+const clearHighlight = () => {
+  if (lastHighlightedIndex !== -1 && chart3D) {
+    chart3D.dispatchAction({ type: 'downplay', seriesIndex: 0, dataIndex: lastHighlightedIndex })
+    chart3D.dispatchAction({ type: 'hideTip' })
+    lastHighlightedIndex = -1
+    cursor.hoverTargetIndex = -1
+  }
+}
+
+// 执行点击 (捏合触发)
+const executePinchSelection = () => {
+  if (!chart3D) {
+    console.warn('Chart3D not initialized')
+    return
+  }
+
+  // 容错：优先使用当前瞄准的，如果没有，使用上一次高亮的(防抖)
+  let targetIndex = cursor.hoverTargetIndex !== -1 ? cursor.hoverTargetIndex : lastHighlightedIndex
+
+  // 如果还是没有目标，尝试重新检测一次
+  if (targetIndex === -1) {
+    detectHoverTarget()
+    targetIndex = cursor.hoverTargetIndex !== -1 ? cursor.hoverTargetIndex : lastHighlightedIndex
+  }
+
+  if (targetIndex !== -1) {
+    const series = chart3D.getOption().series[0]
+    if (!series || !series.data) {
+      console.warn('Series data not found')
+      return
+    }
+
+    const item = series.data[targetIndex]
+
+    if (item && item.value && Array.isArray(item.value) && item.value.length >= 3) {
+      // 触发视觉波纹
+      cursor.isClicking = true
+      setTimeout(() => cursor.isClicking = false, 300)
+
+      // 强制高亮反馈
+      chart3D.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: targetIndex })
+      chart3D.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: targetIndex })
+
+      // 触发点击事件
+      triggerClick(targetIndex, item.value)
+      
+      console.log('Pinch selection triggered:', {
+        index: targetIndex,
+        value: item.value,
+        experience: experiences.value[item.value[0]],
+        education: educations.value[item.value[1]],
+        salary: item.value[2]
+      })
+    } else {
+      console.warn('Invalid item data at index', targetIndex, item)
+    }
+  } else {
+    console.warn('No target found for pinch selection')
+    gestureStatus.value = '未找到目标 (捏合)'
+  }
+}
+
+const triggerClick = (index, value) => {
+  emit('bar-click', {
+    experience: experiences.value[value[0]],
+    education: educations.value[value[1]],
+    salary: value[2]
+  })
+}
+
+onUnmounted(() => {
+  stopGestureControl()
+  if (resizeHandler) window.removeEventListener('resize', resizeHandler)
+  if (chart3D) chart3D.dispose()
 })
 </script>
 
 <style scoped>
-.chart-3d {
-  width: 100%;
-}
+.chart-3d { position: relative; width: 100%; height: 100%; }
+.chart-wrapper { position: relative; width: 100%; overflow: hidden; }
 
-.chart-wrapper {
-  width: 100%;
-}
-
+/* 容器样式 */
 .chart-container {
-  width: 100%;
-  height: 650px;
-  border-radius: 12px;
+  width: 100%; height: 650px;
   background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
-  position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-.chart-container:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-}
-
-
-.loading {
-  text-align: center;
-  padding: 60px 20px;
-}
-
+.loading, .result.error { text-align: center; padding: 60px 20px; }
 .spinner {
-  border: 4px solid rgba(84, 112, 198, 0.1);
-  border-top: 4px solid #5470c6;
+  border: 4px solid #eee; border-top: 4px solid #5470c6;
+  border-radius: 50%; width: 50px; height: 50px;
+  animation: spin 0.8s linear infinite; margin: 0 auto 20px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* === 手势交互 UI === */
+.gesture-status {
+  position: absolute; bottom: 20px; left: 20px;
+  background: rgba(0,0,0,0.7); color: #fff;
+  padding: 8px 16px; border-radius: 30px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; pointer-events: none; user-select: none;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.status-icon { font-size: 18px; }
+
+/* 虚拟光标容器 */
+.hand-cursor {
+  position: absolute; top: 0; left: 0;
+  width: 0; height: 0; /* 自身不占位，靠 transform 定位 */
+  pointer-events: none; z-index: 9999;
+}
+
+/* 光标圆环 */
+.cursor-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px; height: 24px;
+  border: 2px solid rgba(64, 158, 255, 0.8);
   border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 20px;
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 0 8px rgba(64, 158, 255, 0.4);
+  background: rgba(64, 158, 255, 0.1);
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+/* 状态1：悬浮瞄准 (变大变橙) */
+.hand-cursor.hovering .cursor-ring {
+  width: 50px; height: 50px;
+  border-color: #E6A23C;
+  background: rgba(230, 162, 60, 0.15);
+  border-width: 3px;
+  box-shadow: 0 0 15px rgba(230, 162, 60, 0.6);
 }
 
-.loading p {
-  color: #666;
-  font-size: 14px;
+/* 状态2：捏合选中 (变红实心) */
+.hand-cursor.pinching .cursor-ring {
+  width: 16px; height: 16px;
+  background: #ff4d4f;
+  border-color: #ff4d4f;
+  border-width: 0;
+  box-shadow: 0 0 20px rgba(255, 77, 79, 0.9);
 }
 
-.result.error {
-  background: linear-gradient(135deg, #fee 0%, #fdd 100%);
-  border: 1px solid #fcc;
-  color: #c33;
-  padding: 20px;
-  border-radius: 8px;
-  margin-top: 20px;
+/* 点击波纹特效 */
+.click-ripple {
+  position: absolute; top: 50%; left: 50%;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  border: 2px solid #ff4d4f;
+  transform: translate(-50%, -50%);
+  animation: ripple 0.6s ease-out forwards;
 }
 
-.result.error pre {
-  margin: 0;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-size: 13px;
+@keyframes ripple {
+  0% { width: 10px; height: 10px; opacity: 1; border-width: 4px; }
+  100% { width: 150px; height: 150px; opacity: 0; border-width: 0px; }
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .chart-container {
-    height: 500px;
-  }
-}
+.gesture-video { position: absolute; opacity: 0; width: 1px; height: 1px; }
 </style>
-
