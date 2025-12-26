@@ -150,22 +150,12 @@ const renderChart = () => {
         seriesIndex: params.seriesIndex
       })
       
-      // 只处理柱状图的点击，且必须有有效的dataIndex
-      if (params.componentType === 'series' 
-          && params.seriesType === 'bar' 
-          && params.dataIndex !== undefined 
-          && params.dataIndex !== null) {
-        
-        const macroData = props.data.macro_comparison
-        if (macroData && macroData[params.dataIndex]) {
-          const jobTitle = macroData[params.dataIndex].job_title
-          console.log('NestedBarChart: 点击柱子，职位名称:', jobTitle, '类型:', typeof jobTitle)
-          
-          if (typeof jobTitle === 'string' && jobTitle.trim()) {
-            emit('selectJob', jobTitle)
-          } else {
-            console.error('NestedBarChart: 无效的职位名称', jobTitle)
-          }
+      // 处理自定义系列的点击
+      if (params.componentType === 'series' && params.seriesType === 'custom' && params.data) {
+        const itemData = params.data[5]; // 获取存储的itemData
+        if (itemData && itemData.job_title) {
+          console.log('NestedBarChart: 点击柱子，职位名称:', itemData.job_title);
+          emit('selectJob', itemData.job_title);
         }
       }
     })
@@ -174,32 +164,82 @@ const renderChart = () => {
   console.log('NestedBarChart: 图表渲染完成')
 }
 
+// 获取行业集中度颜色
+const getConcentrationColor = (concentration, min, max) => {
+  const range = max - min || 1;
+  const normalized = (concentration - min) / range;
+  
+  // 使用颜色插值：从浅蓝(低集中度) -> 黄色(中等) -> 深红(高集中度)
+  if (normalized < 0.5) {
+    // 浅蓝到黄色
+    const ratio = normalized * 2;
+    const r = Math.floor(84 + (250 - 84) * ratio);
+    const g = Math.floor(112 + (200 - 112) * ratio);
+    const b = Math.floor(198 + (88 - 198) * ratio);
+    return `rgb(${r}, ${g}, ${b})`;
+  } else {
+    // 黄色到深红
+    const ratio = (normalized - 0.5) * 2;
+    const r = Math.floor(250 + (238 - 250) * ratio);
+    const g = Math.floor(200 + (44 - 200) * ratio);
+    const b = Math.floor(88 + (44 - 88) * ratio);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+};
+
 // 宏观对比图表配置
 const getMacroComparisonOption = () => {
   const data = props.data.macro_comparison
   const jobTitles = data.map(d => d.job_title.substring(0, 8) + '...')
-  const skillScores = data.map(d => d.skill_score)
   
-  // 为每个柱子生成点状图数据（基于行业集中度）
-  const scatterData = []
-  data.forEach((item, index) => {
-    // 根据行业集中度生成点的数量（集中度越高，点越多）
-    // 基础点数 + 根据集中度增加的点数
-    const basePoints = 100 // 基础点数
-    const concentrationPoints = Math.floor(item.industry_concentration * 3) // 集中度影响的点数
-    const pointCount = basePoints + concentrationPoints // 总点数可达到400个
+  // 计算行业集中度的最大值和最小值，用于归一化
+  const concentrations = data.map(d => d.industry_concentration)
+  const maxConcentration = Math.max(...concentrations)
+  const minConcentration = Math.min(...concentrations)
+  const concentrationRange = maxConcentration - minConcentration || 1 // 避免除零
+  
+  // 准备数据，包含内外柱子的值和样式
+  const seriesData = data.map((item, index) => {
+    const normalizedConcentration = (item.industry_concentration - minConcentration) / concentrationRange;
+    const innerHeight = item.skill_score * (normalizedConcentration * 0.6 + 0.4);
+    const color = getConcentrationColor(item.industry_concentration, minConcentration, maxConcentration);
     
-    for (let i = 0; i < pointCount; i++) {
-      // 在柱子内部随机分布点，覆盖整个柱子高度
-      const y = Math.random() * item.skill_score
-      // 使用类目名称作为x值，这样散点会自动对齐到对应的柱子
-      scatterData.push({
-        value: [index, y],
-        symbolOffset: [(Math.random() - 0.5) * 170, 0] // 水平偏移，单位是像素（±60像素）
-      })
-    }
-  })
+    console.log('Item:', item.job_title, {
+      concentration: item.industry_concentration,
+      normalized: normalizedConcentration,
+      color: color
+    });
+    
+    return {
+      outerValue: item.skill_score,
+      innerValue: innerHeight,
+      outerStyle: {
+        color: 'rgba(84, 112, 198, 0.3)',
+        borderColor: '#5470c6',
+        borderWidth: 2
+      },
+      innerStyle: {
+        color: color,
+        borderColor: '#fff',
+        borderWidth: 1,
+        fill: color
+      },
+      itemData: {
+        job_title: item.job_title,
+        skill_score: item.skill_score,
+        avg_salary: item.avg_salary,
+        avg_experience_rank: item.avg_experience_rank,
+        avg_education_rank: item.avg_education_rank,
+        industry_concentration: item.industry_concentration,
+        concentrationLevel: normalizedConcentration < 0.33 ? '低' : 
+                          normalizedConcentration < 0.67 ? '中' : '高',
+        // 添加计算好的颜色
+        color: color
+      }
+    };
+  });
 
+  // 使用自定义系列实现嵌套柱状图效果
   return {
     title: {
       text: '职位宏观对比（点击柱子查看详情）',
@@ -210,30 +250,15 @@ const getMacroComparisonOption = () => {
         fontWeight: 'bold'
       }
     },
-    tooltip: {
-      trigger: 'item',
-      formatter: function(params) {
-        if (params.componentType === 'series' && params.seriesType === 'bar') {
-          const item = data[params.dataIndex]
-          return `
-            <div style="padding: 10px;">
-              <strong>${item.job_title}</strong><br/>
-              综合技能分数: ${item.skill_score}<br/>
-              平均薪资: ${item.avg_salary}K<br/>
-              经验要求: ${item.avg_experience_rank}<br/>
-              学历要求: ${item.avg_education_rank}<br/>
-              行业集中度: ${item.industry_concentration}
-            </div>
-          `
-        }
-        return ''
-      }
+    legend: {
+      data: ['综合技能分数', '行业集中度（内部柱子）'],
+      top: 35
     },
     grid: {
       left: '10%',
       right: '10%',
       bottom: '15%',
-      top: 80,
+      top: 100,
       containLabel: true
     },
     xAxis: {
@@ -249,40 +274,122 @@ const getMacroComparisonOption = () => {
       type: 'value',
       name: '综合技能分数'
     },
-    series: [
-      {
-        name: '综合技能分数',
-        type: 'bar',
-        data: skillScores,
-        barWidth: '60%',
-        itemStyle: {
-          color: 'rgba(84, 112, 198, 0.6)',
-          borderColor: '#5470c6',
-          borderWidth: 2
-        },
-        emphasis: {
-          itemStyle: {
-            color: 'rgba(84, 112, 198, 0.8)',
-            borderColor: '#3a5aa0',
-            borderWidth: 2
+    series: [{
+      name: '职位对比',
+      type: 'custom',
+      renderItem: function(params, api) {
+        const dataIndex = params.dataIndex;
+        const outerValue = api.value(1);
+        const innerValue = api.value(2);
+        
+        const point = api.coord([api.value(0), outerValue]);
+        const innerPoint = api.coord([api.value(0), innerValue]);
+        
+        const barWidth = api.size([1, 0])[0] * 0.6;
+        const innerBarWidth = barWidth * 0.6;
+        
+        return {
+          type: 'group',
+          children: [{
+            // 外柱
+            type: 'rect',
+            shape: {
+              x: point[0] - barWidth / 2,
+              y: point[1],
+              width: barWidth,
+              height: api.size([0, outerValue])[1],
+            },
+            style: {
+              fill: 'rgba(84, 112, 198, 0.3)',
+              stroke: '#5470c6',
+              lineWidth: 2
+            },
+            emphasis: {
+              style: {
+                fill: 'rgba(84, 112, 198, 0.5)',
+                stroke: '#3a5aa0',
+                lineWidth: 2
+              }
+            },
+            cursor: 'pointer'
+          }, {
+            // 内柱
+            type: 'rect',
+            shape: {
+              x: point[0] - innerBarWidth / 2,
+              y: innerPoint[1],
+              width: innerBarWidth,
+              height: api.size([0, innerValue])[1],
+            },
+            style: {
+              fill: api.value(6) || '#ff0000', // 直接使用颜色值
+              stroke: '#fff',
+              lineWidth: 1
+            },
+            emphasis: {
+              style: {
+                fill: api.value(6) || '#ff0000', // 直接使用颜色值
+                stroke: '#fff',
+                lineWidth: 2,
+                shadowBlur: 10,
+                shadowColor: 'rgba(0, 0, 0, 0.3)'
+              }
+            }
+          }],
+          // 添加点击事件
+          onclick: function() {
+            const itemData = api.value(5);
+            if (itemData && itemData.job_title) {
+              emit('selectJob', itemData.job_title);
+            }
           }
-        },
-        cursor: 'pointer',
-        z: 1
+        };
       },
+      // 数据格式：[索引, 外柱值, 内柱值, 外柱样式, 内柱样式, 其他数据, 颜色值]
+      data: seriesData.map((item, index) => [
+        index,  // x轴分类索引
+        item.outerValue,
+        item.innerValue,
+        item.outerStyle,
+        item.innerStyle,
+        item.itemData,
+        item.itemData.color // 直接传递颜色值
+      ]),
+      encode: {
+        x: 0,
+        y: 1
+      }
+    }],
+    tooltip: {
+      trigger: 'item',
+      formatter: function(params) {
+        if (params.componentType === 'series' && params.seriesType === 'custom') {
+          const data = params.value[5];
+          return `
+            <div style="padding: 10px;">
+              <strong>${data.job_title}</strong><br/>
+              综合技能分数: ${data.skill_score.toFixed(1)}<br/>
+              平均薪资: ${data.avg_salary}K<br/>
+              经验要求: ${data.avg_experience_rank}<br/>
+              学历要求: ${data.avg_education_rank}<br/>
+              行业集中度: ${data.industry_concentration.toFixed(2)} (${data.concentrationLevel})
+            </div>
+          `;
+        }
+        return '';
+      }
+    },
+    graphic: [
       {
-        name: '行业集中度',
-        type: 'scatter',
-        data: scatterData,
-        symbolSize: 4,
-        itemStyle: {
-          color: '#fac858',
-          opacity: 0.8,
-          borderColor: '#ee6666',
-          borderWidth: 0.5
-        },
-        z: 2,
-        silent: true // 不响应鼠标事件
+        type: 'text',
+        right: 20,
+        top: 100,
+        style: {
+          text: '行业集中度颜色：\n浅蓝(低) → 黄色(中) → 深红(高)',
+          fontSize: 11,
+          fill: '#666',
+          textAlign: 'right'
+        }
       }
     ]
   }
