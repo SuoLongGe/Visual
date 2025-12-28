@@ -6,20 +6,8 @@
         <!-- 视图1：Math-Based 多维 Icon 柱状图 -->
         <div class="chart-section chart-left">
           <h2>Math-Based 多维 Icon 柱状图</h2>
-          <p class="chart-description">
-            展示职位在招聘数量、学历要求、经验要求等维度的综合排名
-            <br/>
-            <strong>💡 提示：鼠标悬浮于任意柱体时，将显示详细信息（职位名称、招聘数量、平均学历要求、平均经验年限）</strong>
-          </p>
           
           <div class="api-section">
-            <!--<div style="margin-bottom: 8px; font-size: 14px; color: #666;">
-              💡 系统已优化：支持数据缓存，首次加载后自动保存，第二次及以后加载速度大幅提升
-            </div>-->
-            <button class="btn" @click="handleLoadChart" :disabled="loading">
-              {{ loading ? '加载中...' : (chartData ? '重新加载职位排名数据' : '加载职位排名数据') }}
-            </button>
-            
             <div v-if="error" class="error-message">
               <p>加载失败: {{ error }}</p>
             </div>
@@ -31,8 +19,12 @@
               :error="error"
             />
             
+            <div v-if="loading" class="empty-state">
+              <p>正在加载数据...</p>
+            </div>
+            
             <div v-if="!chartData && !loading && !error" class="empty-state">
-              <p>点击上方按钮加载数据</p>
+              <p>暂无数据</p>
             </div>
           </div>
         </div>
@@ -40,17 +32,8 @@
         <!-- 视图2：连续型进度条图 -->
         <div class="chart-section chart-right">
           <h2>Math-Based 多维进度条图（连续型）</h2>
-          <p class="chart-description">
-            展示职位在招聘数量、学历要求、经验要求等维度的连续型综合排名
-            <br/>
-            <strong>💡 提示：鼠标悬浮于任意进度条时，将显示详细信息（职位名称、招聘数量、平均学历要求、平均经验年限）</strong>
-          </p>
           
           <div class="api-section">
-            <button class="btn" @click="handleLoadChart" :disabled="loading">
-              {{ loading ? '加载中...' : '加载职位排名数据' }}
-            </button>
-            
             <div v-if="error" class="error-message">
               <p>加载失败: {{ error }}</p>
             </div>
@@ -62,8 +45,12 @@
               :error="error"
             />
             
+            <div v-if="loading" class="empty-state">
+              <p>正在加载数据...</p>
+            </div>
+            
             <div v-if="!chartData && !loading && !error" class="empty-state">
-              <p>点击上方按钮加载数据</p>
+              <p>暂无数据</p>
             </div>
           </div>
         </div>
@@ -74,13 +61,6 @@
     <div v-else-if="currentPage === 2">
       <div class="chart-section chart-full">
         <h2>行业双环嵌套玫瑰极坐标图</h2>
-        <p class="chart-description">
-          内环：角度均匀分配各行业；半径表示行业招聘总数（归一化 0~10）；颜色深浅映射平均薪资（浅红→深红）。
-          <br/>
-          外环：与内环角度对齐；半径为平均学历要求（0~1 映射 0~10）；颜色深浅映射经验要求（浅绿→深绿）。
-          <br/>
-          <strong>💡 提示：鼠标悬浮某行业，动态展示其详细信息</strong>
-        </p>
 
         <div class="api-section">
           <!--<button class="btn" @click="handleLoadIndustryRose" :disabled="roseLoading">
@@ -293,8 +273,13 @@ watch(currentPage, (newPage) => {
   }
 })
 
-// 组件挂载时如果在第2页就自动加载数据
+// 组件挂载时自动加载数据
 onMounted(() => {
+  // 如果在第1页，自动加载职位排名数据
+  if (currentPage.value === 1) {
+    handleLoadChart()
+  }
+  // 如果在第2页，自动加载玫瑰图数据
   if (currentPage.value === 2) {
     autoLoadRoseData()
   }

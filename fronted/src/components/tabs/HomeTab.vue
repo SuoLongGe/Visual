@@ -71,6 +71,15 @@
         <div class="preview-arrow">→</div>
       </div>
 
+      <div class="preview-card" @click="switchTab('q4')">
+        <div class="preview-header">
+          <span class="preview-icon">🗺️</span>
+          <h3>地域数据分析</h3>
+        </div>
+        <p class="preview-desc">分析不同城市的招聘数据，探索地域分布规律</p>
+        <div class="preview-arrow">→</div>
+      </div>
+
       <div class="preview-card" @click="switchTab('q5')">
         <div class="preview-header">
           <span class="preview-icon">🚀</span>
@@ -385,6 +394,7 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   z-index: 1;
+  background: transparent;
 }
 
 .wordcloud-background {
@@ -408,29 +418,22 @@ onUnmounted(() => {
 .hero-content {
   position: relative;
   z-index: 2;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
   padding: 30px;
   border-radius: 20px;
-  border: 1px solid rgba(217, 119, 87, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .main-title {
   margin: 0 0 15px 0;
   font-size: 3.5em;
   font-weight: 700;
-  background: linear-gradient(135deg, #d97757 0%, #ff8c69 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 40px rgba(217, 119, 87, 0.5);
-  animation: titleGlow 3s ease-in-out infinite;
+  color: #2c3e50;
+  text-shadow: none;
 }
 
-@keyframes titleGlow {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.2); }
-}
 
 .title-subtitle {
   display: block;
@@ -442,7 +445,7 @@ onUnmounted(() => {
 
 .hero-description {
   font-size: 1.2em;
-  color: rgba(255, 255, 255, 0.7);
+  color: #34495e;
   margin: 0;
   letter-spacing: 1px;
 }
@@ -460,7 +463,7 @@ onUnmounted(() => {
 
 .floating-shape {
   position: absolute;
-  border: 2px solid rgba(217, 119, 87, 0.3);
+  border: 2px solid rgba(44, 62, 80, 0.15);
   border-radius: 50%;
   animation: float 6s ease-in-out infinite;
 }
@@ -509,9 +512,9 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(217, 119, 87, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 16px;
   padding: 25px;
   position: relative;
@@ -521,6 +524,7 @@ onUnmounted(() => {
   animation: slideInUp 0.6s ease-out both;
   animation-delay: var(--delay);
   z-index: 1;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 @keyframes slideInUp {
@@ -536,8 +540,8 @@ onUnmounted(() => {
 
 .stat-card:hover {
   transform: translateY(-8px);
-  border-color: rgba(217, 119, 87, 0.6);
-  box-shadow: 0 10px 40px rgba(217, 119, 87, 0.3);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
 .stat-card::before {
@@ -547,7 +551,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #d97757, transparent);
+  background: linear-gradient(90deg, transparent, #2c3e50, transparent);
   opacity: 0;
   transition: opacity 0.4s;
 }
@@ -562,7 +566,7 @@ onUnmounted(() => {
   left: 50%;
   width: 0;
   height: 0;
-  background: radial-gradient(circle, rgba(217, 119, 87, 0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(44, 62, 80, 0.1) 0%, transparent 70%);
   transform: translate(-50%, -50%);
   transition: width 0.6s, height 0.6s;
   pointer-events: none;
@@ -576,7 +580,7 @@ onUnmounted(() => {
 .stat-icon {
   font-size: 2.5em;
   margin-bottom: 15px;
-  filter: drop-shadow(0 0 10px rgba(217, 119, 87, 0.5));
+  filter: none;
 }
 
 .stat-content {
@@ -594,20 +598,20 @@ onUnmounted(() => {
 .number {
   font-size: 2.5em;
   font-weight: 700;
-  color: #d97757;
-  text-shadow: 0 0 20px rgba(217, 119, 87, 0.5);
+  color: #2c3e50;
+  text-shadow: none;
   font-variant-numeric: tabular-nums;
 }
 
 .unit {
   font-size: 1.2em;
-  color: rgba(255, 255, 255, 0.6);
+  color: #7f8c8d;
   font-weight: 400;
 }
 
 .stat-label {
   font-size: 1em;
-  color: rgba(255, 255, 255, 0.7);
+  color: #34495e;
   font-weight: 400;
 }
 
@@ -620,9 +624,9 @@ onUnmounted(() => {
 }
 
 .preview-card {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(217, 119, 87, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 16px;
   padding: 25px;
   position: relative;
@@ -630,6 +634,7 @@ onUnmounted(() => {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   z-index: 1;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .preview-card::before {
@@ -639,7 +644,7 @@ onUnmounted(() => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(217, 119, 87, 0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(44, 62, 80, 0.05), transparent);
   transition: left 0.6s;
 }
 
@@ -649,8 +654,8 @@ onUnmounted(() => {
 
 .preview-card:hover {
   transform: translateX(10px);
-  border-color: rgba(217, 119, 87, 0.6);
-  box-shadow: 0 10px 40px rgba(217, 119, 87, 0.3);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
 }
 
 .preview-header {
@@ -662,18 +667,18 @@ onUnmounted(() => {
 
 .preview-icon {
   font-size: 2em;
-  filter: drop-shadow(0 0 10px rgba(217, 119, 87, 0.5));
+  filter: none;
 }
 
 .preview-header h3 {
   margin: 0;
   font-size: 1.3em;
-  color: #d97757;
+  color: #2c3e50;
   font-weight: 600;
 }
 
 .preview-desc {
-  color: rgba(255, 255, 255, 0.7);
+  color: #34495e;
   line-height: 1.6;
   margin: 0 0 15px 0;
   font-size: 0.95em;
@@ -685,7 +690,7 @@ onUnmounted(() => {
   top: 50%;
   transform: translateY(-50%);
   font-size: 2em;
-  color: #d97757;
+  color: #2c3e50;
   opacity: 0;
   transition: all 0.4s;
 }
@@ -703,14 +708,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   min-height: 400px;
-  color: rgba(255, 255, 255, 0.7);
+  color: #34495e;
 }
 
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(217, 119, 87, 0.2);
-  border-top-color: #d97757;
+  border: 4px solid rgba(44, 62, 80, 0.2);
+  border-top-color: #2c3e50;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;

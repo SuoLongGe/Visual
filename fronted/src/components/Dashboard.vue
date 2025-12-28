@@ -3,7 +3,7 @@
     <div class="container">
       <!-- 顶部导航区域：标题 + 标签 -->
       <div class="top-nav">
-        <div class="nav-title">
+        <div class="nav-title" @click="switchTab('home')">
           <h1>多维度招聘数据分析</h1>
         </div>
         <div class="tabs-wrapper">
@@ -16,7 +16,6 @@
               @click="switchTab(tab.id)"
               :style="{ '--index': index }"
             >
-              <span class="tab-icon">{{ getTabIcon(tab.id) }}</span>
               <span class="tab-label">{{ tab.label }}</span>
               <span class="tab-ripple" v-if="activeTab === tab.id"></span>
             </button>
@@ -79,19 +78,12 @@ import Q5Tab from './tabs/Q5Tab.vue'
 const activeTab = ref('home')
 
 const tabs = [
-  { id: 'home', label: '首页' },
-  { id: 'q1', label: 'Q1 职位差异度分析' },
-  { id: 'q2', label: 'Q2 职位画像分析' },
-  { id: '3d-chart', label: 'Q3 薪资多维分析' },
-  { id: 'q4', label: 'Q4' },
-  { id: 'q5', label: 'Q5 行业动态趋势' }
+  { id: 'q1', label: '职位差异度分析' },
+  { id: 'q2', label: '职位画像分析' },
+  { id: '3d-chart', label: '薪资多维分析' },
+  { id: 'q4', label: '地域数据分析' },
+  { id: 'q5', label: '行业动态趋势' }
 ]
-
-// 获取标签图标
-const getTabIcon = (id) => {
-  const tab = tabs.find(t => t.id === id)
-  return tab?.icon || '📋'
-}
 
 // 切换标签
 const switchTab = (tabId) => {
@@ -101,12 +93,22 @@ const switchTab = (tabId) => {
 // 计算活动指示器位置
 const getIndicatorStyle = () => {
   const activeIndex = tabs.findIndex(tab => tab.id === activeTab.value)
+  
+  // 如果当前在首页，隐藏指示器
+  if (activeTab.value === 'home' || activeIndex === -1) {
+    return {
+      opacity: '0',
+      pointerEvents: 'none'
+    }
+  }
+  
   const width = 100 / tabs.length
   const left = activeIndex * width
   
   return {
     width: `${width}%`,
-    left: `${left}%`
+    left: `${left}%`,
+    opacity: '1'
   }
 }
 </script>
@@ -135,20 +137,35 @@ const getIndicatorStyle = () => {
   align-items: center;
   gap: 12px;
   padding: 10px 15px;
-  background: #000000;
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.nav-title {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-title:hover {
+  opacity: 0.8;
+  transform: translateX(-2px);
 }
 
 .nav-title h1 {
   font-size: 1.4em;
   font-weight: 600;
-  color: white;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+  color: #2c3e50;
+  text-shadow: none;
   white-space: nowrap;
   margin: 0;
+  transition: color 0.3s ease;
+}
+
+.nav-title:hover h1 {
+  color: #d97757;
 }
 
 /* 标签页容器 */
@@ -160,15 +177,15 @@ const getIndicatorStyle = () => {
 .tabs-container {
   position: relative;
   display: flex;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 12px;
   padding: 6px;
   box-shadow: 
-    0 4px 20px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+    0 2px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
@@ -192,14 +209,13 @@ const getIndicatorStyle = () => {
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+  color: rgba(44, 62, 80, 0.9);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   overflow: hidden;
 }
 
@@ -211,7 +227,7 @@ const getIndicatorStyle = () => {
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(217, 119, 87, 0.2);
+  background: rgba(217, 119, 87, 0.15);
   transform: translate(-50%, -50%);
   transition: width 0.6s, height 0.6s;
 }
@@ -231,15 +247,6 @@ const getIndicatorStyle = () => {
   font-weight: 600;
 }
 
-.tab-icon {
-  font-size: 18px;
-  transition: transform 0.3s;
-}
-
-.tab-button:hover .tab-icon {
-  transform: scale(1.2) rotate(5deg);
-}
-
 .tab-label {
   position: relative;
   z-index: 1;
@@ -250,14 +257,15 @@ const getIndicatorStyle = () => {
   position: absolute;
   top: 6px;
   height: calc(100% - 12px);
-  background: rgba(217, 119, 87, 0.95);
+  background: rgba(217, 119, 87, 0.9);
   backdrop-filter: blur(10px);
   border-radius: 8px;
   box-shadow: 
-    0 4px 20px rgba(217, 119, 87, 0.4),
-    0 0 0 1px rgba(217, 119, 87, 0.3);
+    0 2px 12px rgba(217, 119, 87, 0.3),
+    0 0 0 1px rgba(217, 119, 87, 0.2);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
+  opacity: 1;
 }
 
 /* 波纹效果 */
@@ -268,7 +276,7 @@ const getIndicatorStyle = () => {
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(217, 119, 87, 0.3);
+  background: rgba(217, 119, 87, 0.25);
   transform: translate(-50%, -50%);
   animation: ripple 1.5s ease-out infinite;
 }
@@ -299,9 +307,9 @@ const getIndicatorStyle = () => {
   border-radius: 16px;
   padding: 15px;
   box-shadow: 
-    0 10px 40px rgba(0, 0, 0, 0.15),
-    0 0 0 1px rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   min-height: calc(100vh - 200px);
   position: relative;
   overflow: visible;
@@ -323,7 +331,7 @@ const getIndicatorStyle = () => {
   height: 1px;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(217, 119, 87, 0.4), 
+    rgba(217, 119, 87, 0.3), 
     transparent
   );
   z-index: 0;
@@ -381,10 +389,6 @@ const getIndicatorStyle = () => {
   .tab-button {
     padding: 8px 12px;
     font-size: 13px;
-  }
-  
-  .tab-icon {
-    font-size: 16px;
   }
   
   .nav-title h1 {
@@ -452,7 +456,7 @@ const getIndicatorStyle = () => {
 /* 深色模式支持（可选） */
 @media (prefers-color-scheme: dark) {
   .content-glass {
-    background: rgba(30, 30, 40, 0.95);
+    background: rgba(255, 255, 255, 0.95);
     border-color: rgba(255, 255, 255, 0.1);
   }
   

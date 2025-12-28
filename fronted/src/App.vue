@@ -11,7 +11,7 @@ import Dashboard from './components/Dashboard.vue'
 <style scoped>
 .app {
   min-height: 100vh;
-  background: #000000;
+  background: #e2dbd6;
   position: relative;
   overflow-x: hidden;
 }

@@ -873,17 +873,18 @@ onUnmounted(() => {
 
 .main-viz-area {
   display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
 .parallel-section {
-  flex: 2;
+  width: 100%;
   min-width: 0;
 }
 
 .scatter-section {
-  flex: 1;
-  min-width: 400px;
+  width: 100%;
+  min-width: 0;
 }
 
 .parallel-section h3,
@@ -908,11 +909,14 @@ onUnmounted(() => {
 
 .scatter-grid {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .scatter-item {
+  flex: 1;
+  min-width: 300px;
   background: #fafafa;
   border: 1px solid #e0e0e0;
   border-radius: 4px;

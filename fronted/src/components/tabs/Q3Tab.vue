@@ -5,14 +5,6 @@
       <!-- 视图1：三维柱状图 -->
       <div class="chart-section left-section">
         <h2>三维柱状对比图</h2>
-        <p class="chart-description">
-          展示不同工作经验与学历组合下的平均薪资分布
-          X轴：工作经验 | Y轴：学历层次 | Z轴：平均薪资
-          <br/>
-          <strong>💡 提示：点击3D图表中的柱体，将自动加载对应的箱线图分析</strong>
-          <br/>
-          <strong>🖐 手势控制：</strong> 可在下方按钮中手动开启或关闭摄像头手势交互
-        </p>
 
         <!-- 手动启停摄像头的按钮 -->
         <button class="btn" type="button" @click="toggleGesture">
@@ -33,9 +25,6 @@
       <!-- 视图2：箱线图 -->
       <div class="boxplot-section right-section">
       <h2>箱线图分析</h2>
-      <p class="chart-description">
-        在选定条件下（特定 experience × education）展示不同城市与公司类型之间的薪资分布情况
-      </p>
       
       <BoxplotChart 
         :experience="selectedExperience"
@@ -47,13 +36,6 @@
     <!-- 视图3：交互式平行坐标图 + 散点图矩阵 -->
     <div class="radar-section full-width">
       <h2>交互式多维可视化</h2>
-      <p class="chart-description">
-        <strong>🎯 参考 FLINAView 设计的多视图协同可视化系统</strong>
-        <br/>• <strong>平行坐标图</strong>：展示6个维度的完整关系，支持在任意轴上拖动刷选数据
-        <br/>• <strong>散点图矩阵</strong>：展示关键维度对的分布，支持框选数据点
-        <br/>• <strong>视图联动</strong>：所有视图同步高亮和过滤，鼠标悬停查看详情
-        <br/>• <strong>交互操作</strong>：在轴上拖动刷选 | 在散点图上框选 | 点击选择单个数据 | 清除选择按钮
-      </p>
       
       <div class="api-section">
         <InteractiveParallelCoordinates 
