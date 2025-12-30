@@ -20,6 +20,23 @@ db_manager = DatabaseManager('default')
 position_service = PositionService(db_manager)
 
 
+@position_bp.route('/job_titles', methods=['GET'])
+def get_job_titles():
+    """
+    获取所有职位名称列表
+    用于下拉框选择
+    """
+    try:
+        job_titles = position_service.get_job_titles_list()
+        return ResponseBuilder.success("获取职位列表成功", {"job_titles": job_titles})
+    except Exception as e:
+        logger.error(f"获取职位列表失败: {e}")
+        return ResponseBuilder.internal_error("服务器内部错误", {
+            "type": "INTERNAL_ERROR",
+            "details": str(e)
+        })
+
+
 @position_bp.route('/parallel', methods=['GET'])
 def get_parallel_coordinates():
     """

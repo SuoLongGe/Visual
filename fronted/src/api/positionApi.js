@@ -1,6 +1,15 @@
 import apiClient from './apiClient'
 
 /**
+ * 获取职位列表
+ * @returns {Promise<{code: number, data: {job_titles: string[]}, message: string}>}
+ */
+export const getJobTitlesList = async () => {
+  const response = await apiClient.get('/positions/job_titles')
+  return response
+}
+
+/**
  * 获取平行坐标图数据
  * @param {string[]} jobTitles - 职位名称数组，最多3个
  */

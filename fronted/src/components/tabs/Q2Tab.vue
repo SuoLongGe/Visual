@@ -54,15 +54,36 @@
           <div class="unified-inputs">
             <div class="input-group">
               <label>职位1</label>
-              <input v-model="unifiedJobs[0]" type="text" placeholder="例如：数据分析师" class="unified-input" />
+              <div class="unified-input">
+                <CustomSelect 
+                  v-model="unifiedJobs[0]" 
+                  :options="jobTitlesList"
+                  placeholder="输入或选择职位"
+                  :max-visible="100"
+                />
+              </div>
             </div>
             <div class="input-group">
               <label>职位2</label>
-              <input v-model="unifiedJobs[1]" type="text" placeholder="例如：算法工程师" class="unified-input" />
+              <div class="unified-input">
+                <CustomSelect 
+                  v-model="unifiedJobs[1]" 
+                  :options="jobTitlesList"
+                  placeholder="输入或选择职位"
+                  :max-visible="100"
+                />
+              </div>
             </div>
             <div class="input-group">
               <label>职位3</label>
-              <input v-model="unifiedJobs[2]" type="text" placeholder="例如：机器学习工程师" class="unified-input" />
+              <div class="unified-input">
+                <CustomSelect 
+                  v-model="unifiedJobs[2]" 
+                  :options="jobTitlesList"
+                  placeholder="输入或选择职位"
+                  :max-visible="100"
+                />
+              </div>
             </div>
           </div>
           <div class="unified-actions">
@@ -82,7 +103,7 @@
       <!-- 三个视图 -->
       <div class="grid-layout">
       <!-- 视图一：平行坐标图 -->
-      <div class="grid-item" @drop="handleDrop($event, 'parallel')" @dragover.prevent>
+      <div class="grid-item">
         <div class="grid-header">
           <span class="grid-title">📊 平行坐标图</span>
           <button class="expand-btn" @click="expandView('parallel')" title="展开">⤢</button>
@@ -91,37 +112,28 @@
           <div class="compact-controls">
             <div class="compact-inputs">
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="selectedJobs[0]" 
-                  type="text" 
-                  placeholder="职位1" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, selectedJobs[0])"
+                  :options="jobTitlesList"
+                  placeholder="职位1"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="selectedJobs[1]" 
-                  type="text" 
-                  placeholder="职位2" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, selectedJobs[1])"
+                  :options="jobTitlesList"
+                  placeholder="职位2"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="selectedJobs[2]" 
-                  type="text" 
-                  placeholder="职位3" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, selectedJobs[2])"
+                  :options="jobTitlesList"
+                  placeholder="职位3"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
             </div>
             <div class="compact-actions">
@@ -140,7 +152,7 @@
       </div>
       
       <!-- 视图二：桑基图 -->
-      <div class="grid-item" @drop="handleDrop($event, 'sankey')" @dragover.prevent>
+      <div class="grid-item">
         <div class="grid-header">
           <span class="grid-title">🔀 桑基图</span>
           <button class="expand-btn" @click="expandView('sankey')" title="展开">⤢</button>
@@ -153,37 +165,28 @@
             </div>
             <div v-if="sankeyMode === 'compare'" class="compact-inputs">
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="sankeyJobs[0]" 
-                  type="text" 
-                  placeholder="职位1" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, sankeyJobs[0])"
+                  :options="jobTitlesList"
+                  placeholder="职位1"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="sankeyJobs[1]" 
-                  type="text" 
-                  placeholder="职位2" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, sankeyJobs[1])"
+                  :options="jobTitlesList"
+                  placeholder="职位2"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="sankeyJobs[2]" 
-                  type="text" 
-                  placeholder="职位3" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, sankeyJobs[2])"
+                  :options="jobTitlesList"
+                  placeholder="职位3"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
             </div>
             <div class="compact-actions">
@@ -202,7 +205,7 @@
       </div>
       
       <!-- 视图三：嵌套柱状图 -->
-      <div class="grid-item grid-item-full" @drop="handleDrop($event, 'nested')" @dragover.prevent>
+      <div class="grid-item grid-item-full">
         <div class="grid-header">
           <span class="grid-title">📈 嵌套柱状图</span>
           <button class="expand-btn" @click="expandView('nested')" title="展开">⤢</button>
@@ -211,37 +214,28 @@
           <div class="compact-controls">
             <div class="compact-inputs">
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="nestedJobs[0]" 
-                  type="text" 
-                  placeholder="职位1" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, nestedJobs[0])"
+                  :options="jobTitlesList"
+                  placeholder="职位1"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="nestedJobs[1]" 
-                  type="text" 
-                  placeholder="职位2" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, nestedJobs[1])"
+                  :options="jobTitlesList"
+                  placeholder="职位2"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
               <div class="draggable-input-wrapper">
-                <input 
+                <CustomSelect 
                   v-model="nestedJobs[2]" 
-                  type="text" 
-                  placeholder="职位3" 
-                  class="compact-input draggable-input"
-                  draggable="true"
-                  @dragstart="handleDragStart($event, nestedJobs[2])"
+                  :options="jobTitlesList"
+                  placeholder="职位3"
+                  :max-visible="100"
                 />
-                <span class="drag-handle">⋮⋮</span>
               </div>
             </div>
             <div class="compact-actions">
@@ -275,32 +269,29 @@
     <div class="job-selector">
       <div class="selector-group">
         <label>职位1：</label>
-        <input 
+        <CustomSelect 
           v-model="selectedJobs[0]" 
-          type="text" 
-          class="job-input"
-          placeholder="输入职位名称"
-          @input="handleJobInput(0)"
+          :options="jobTitlesList"
+          placeholder="输入或选择职位"
+          :max-visible="100"
         />
       </div>
       <div class="selector-group">
         <label>职位2：</label>
-        <input 
+        <CustomSelect 
           v-model="selectedJobs[1]" 
-          type="text" 
-          class="job-input"
-          placeholder="输入职位名称（可选）"
-          @input="handleJobInput(1)"
+          :options="jobTitlesList"
+          placeholder="输入或选择职位（可选）"
+          :max-visible="100"
         />
       </div>
       <div class="selector-group">
         <label>职位3：</label>
-        <input 
+        <CustomSelect 
           v-model="selectedJobs[2]" 
-          type="text" 
-          class="job-input"
-          placeholder="输入职位名称（可选）"
-          @input="handleJobInput(2)"
+          :options="jobTitlesList"
+          placeholder="输入或选择职位（可选）"
+          :max-visible="100"
         />
       </div>
       <div class="selector-actions">
@@ -400,29 +391,29 @@
         <div v-if="sankeyMode === 'compare'" class="job-selector">
           <div class="selector-group">
             <label>职位1：</label>
-            <input 
+            <CustomSelect 
               v-model="sankeyJobs[0]" 
-              type="text" 
-              class="job-input"
-              placeholder="输入职位名称"
+              :options="jobTitlesList"
+              placeholder="输入或选择职位"
+              :max-visible="100"
             />
           </div>
           <div class="selector-group">
             <label>职位2：</label>
-            <input 
+            <CustomSelect 
               v-model="sankeyJobs[1]" 
-              type="text" 
-              class="job-input"
-              placeholder="输入职位名称（可选）"
+              :options="jobTitlesList"
+              placeholder="输入或选择职位（可选）"
+              :max-visible="100"
             />
           </div>
           <div class="selector-group">
             <label>职位3：</label>
-            <input 
+            <CustomSelect 
               v-model="sankeyJobs[2]" 
-              type="text" 
-              class="job-input"
-              placeholder="输入职位名称（可选）"
+              :options="jobTitlesList"
+              placeholder="输入或选择职位（可选）"
+              :max-visible="100"
             />
           </div>
         </div>
@@ -468,29 +459,29 @@
       <div class="job-selector">
         <div class="selector-group">
           <label>职位1：</label>
-          <input 
+          <CustomSelect 
             v-model="nestedJobs[0]" 
-            type="text" 
-            class="job-input"
-            placeholder="输入职位名称"
+            :options="jobTitlesList"
+            placeholder="输入或选择职位"
+            :max-visible="100"
           />
         </div>
         <div class="selector-group">
           <label>职位2：</label>
-          <input 
+          <CustomSelect 
             v-model="nestedJobs[1]" 
-            type="text" 
-            class="job-input"
-            placeholder="输入职位名称（可选）"
+            :options="jobTitlesList"
+            placeholder="输入或选择职位（可选）"
+            :max-visible="100"
           />
         </div>
         <div class="selector-group">
           <label>职位3：</label>
-          <input 
+          <CustomSelect 
             v-model="nestedJobs[2]" 
-            type="text" 
-            class="job-input"
-            placeholder="输入职位名称（可选）"
+            :options="jobTitlesList"
+            placeholder="输入或选择职位（可选）"
+            :max-visible="100"
           />
         </div>
         
@@ -534,18 +525,44 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useFetchData } from '@/utils/fetchData.js'
-import { getParallelCoordinatesData, getSankeyData, getNestedBarData } from '@/api/positionApi.js'
+import { getParallelCoordinatesData, getSankeyData, getNestedBarData, getJobTitlesList } from '@/api/positionApi.js'
 import PositionParallelChart from '@/components/charts/PositionParallelChart.vue'
 import SankeyChart from '@/components/charts/SankeyChart.vue'
 import NestedBarChart from '@/components/charts/NestedBarChart.vue'
+import CustomSelect from '@/components/common/CustomSelect.vue'
 
 // 布局模式切换
 const layoutMode = ref('tabs') // 'tabs' 或 'grid'
 
 // 视图切换
 const currentView = ref('parallel')
+
+// 职位列表
+const jobTitlesList = ref([])
+const loadingJobTitles = ref(false)
+
+
+// 加载职位列表
+const loadJobTitles = async () => {
+  try {
+    loadingJobTitles.value = true
+    const response = await getJobTitlesList()
+    if (response && response.data && response.data.job_titles) {
+      jobTitlesList.value = response.data.job_titles
+    }
+  } catch (err) {
+    console.error('加载职位列表失败:', err)
+  } finally {
+    loadingJobTitles.value = false
+  }
+}
+
+// 组件挂载时加载职位列表
+onMounted(() => {
+  loadJobTitles()
+})
 
 // 统一职位管理
 const unifiedJobs = ref(['', '', ''])
@@ -624,10 +641,6 @@ const hasValidJobs = computed(() => {
   return selectedJobs.value.some(job => job && job.trim())
 })
 
-// 处理职位输入
-const handleJobInput = (index) => {
-  // 可以在这里添加实时验证或其他逻辑
-}
 
 // 加载数据
 const loadData = async () => {
@@ -810,62 +823,10 @@ const expandView = (view) => {
   currentView.value = view
 }
 
-// 拖拽功能
-const draggedJob = ref(null)
-
-// 开始拖拽
-const handleDragStart = (event, jobValue) => {
-  if (jobValue && jobValue.trim()) {
-    draggedJob.value = jobValue.trim()
-    event.dataTransfer.effectAllowed = 'copy'
-    event.dataTransfer.setData('text/plain', jobValue.trim())
-    
-    // 添加拖拽样式
-    event.target.style.opacity = '0.5'
-  }
-}
-
-// 放置到目标视图
+// 拖拽功能（保留用于兼容性，但下拉框不需要拖拽）
 const handleDrop = (event, targetView) => {
   event.preventDefault()
-  const jobValue = event.dataTransfer.getData('text/plain')
-  
-  if (!jobValue || !jobValue.trim()) {
-    return
-  }
-  
-  // 根据目标视图添加职位到第一个空位
-  let targetJobs = null
-  switch (targetView) {
-    case 'parallel':
-      targetJobs = selectedJobs
-      break
-    case 'sankey':
-      // 如果是整体模式，先切换到对比模式
-      if (sankeyMode.value === 'all') {
-        sankeyMode.value = 'compare'
-      }
-      targetJobs = sankeyJobs
-      break
-    case 'nested':
-      targetJobs = nestedJobs
-      break
-  }
-  
-  if (targetJobs) {
-    // 查找第一个空位
-    const emptyIndex = targetJobs.value.findIndex(job => !job || !job.trim())
-    if (emptyIndex !== -1) {
-      targetJobs.value[emptyIndex] = jobValue.trim()
-      console.log(`职位 "${jobValue}" 已复制到 ${targetView} 视图`)
-    } else {
-      // 如果没有空位，替换最后一个
-      targetJobs.value[targetJobs.value.length - 1] = jobValue.trim()
-      console.log(`职位 "${jobValue}" 已替换 ${targetView} 视图的最后一个位置`)
-    }
-  }
-  
-  draggedJob.value = null
+  // 下拉框不需要拖拽功能，保留此函数以避免错误
 }
 
 </script>
@@ -875,6 +836,9 @@ const handleDrop = (event, targetView) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  background: rgb(225, 214, 207);
+  padding: 20px;
+  border-radius: 12px;
 }
 
 .page-header {
@@ -938,11 +902,12 @@ const handleDrop = (event, targetView) => {
 
 /* 统一职位选择器 */
 .unified-job-selector {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
-  color: white;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eef3f6;
+  color: #2c3e50;
 }
 
 .selector-header {
@@ -953,6 +918,7 @@ const handleDrop = (event, targetView) => {
   margin: 0 0 8px 0;
   font-size: 20px;
   font-weight: 700;
+  color: #0b4a8a;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -961,7 +927,7 @@ const handleDrop = (event, targetView) => {
 .selector-hint {
   margin: 0;
   font-size: 14px;
-  opacity: 0.9;
+  color: #666;
   font-weight: 400;
 }
 
@@ -986,36 +952,41 @@ const handleDrop = (event, targetView) => {
 .input-group label {
   font-size: 13px;
   font-weight: 600;
-  opacity: 0.95;
+  color: #0b4a8a;
   letter-spacing: 0.5px;
 }
 
 .unified-input {
-  padding: 12px 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 100%;
+}
+
+.unified-input .custom-select-wrapper .select-input {
+  padding: 12px 36px 12px 16px;
+  border: 1px solid #eef3f6;
   border-radius: 10px;
   font-size: 14px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  color: white;
+  background: #fff;
+  color: #2c3e50;
   transition: all 0.3s;
 }
 
-.unified-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+.unified-input .custom-select-wrapper .select-input::placeholder {
+  color: #999;
 }
 
-.unified-input:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+.unified-input .custom-select-wrapper .select-input:hover {
+  background: #fafafa;
+  border-color: #5470c6;
 }
 
-.unified-input:focus {
+.unified-input .custom-select-wrapper .select-input:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.25);
-  border-color: white;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+  background: #fff;
+  border-color: #5470c6;
+  box-shadow: 0 0 0 3px rgba(84, 112, 198, 0.1);
 }
+
+
 
 .unified-actions {
   display: flex;
@@ -1042,23 +1013,25 @@ const handleDrop = (event, targetView) => {
 }
 
 .unified-btn-sync {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #5470c6;
   color: white;
 }
 
 .unified-btn-sync:hover:not(:disabled) {
+  background: #4558a3;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+  box-shadow: 0 6px 20px rgba(84, 112, 198, 0.3);
 }
 
 .unified-btn-load {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  background: #5470c6;
   color: white;
 }
 
 .unified-btn-load:hover:not(:disabled) {
+  background: #4558a3;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(67, 233, 123, 0.4);
+  box-shadow: 0 6px 20px rgba(84, 112, 198, 0.3);
 }
 
 .unified-btn-clear {
@@ -1083,7 +1056,7 @@ const handleDrop = (event, targetView) => {
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   padding: 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  background: rgb(225, 214, 207);
   border-radius: 16px;
 }
 
@@ -1107,7 +1080,7 @@ const handleDrop = (event, targetView) => {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #5470c6, #91cc75, #fac858);
+  background: linear-gradient(90deg, #5470c6, #4558a3, #5470c6);
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -1131,8 +1104,9 @@ const handleDrop = (event, targetView) => {
   justify-content: space-between;
   align-items: center;
   padding: 18px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
+  border-bottom: 1px solid #eef3f6;
+  color: #0b4a8a;
   font-weight: 600;
   font-size: 16px;
   position: relative;
@@ -1246,14 +1220,14 @@ const handleDrop = (event, targetView) => {
 }
 
 .compact-mode label:hover {
-  color: #667eea;
+  color: #5470c6;
 }
 
 .compact-mode input[type="radio"] {
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #667eea;
+  accent-color: #5470c6;
 }
 
 .compact-inputs {
@@ -1310,15 +1284,16 @@ const handleDrop = (event, targetView) => {
 }
 
 .compact-input:hover {
-  border-color: #b8c5e8;
+  border-color: #5470c6;
 }
 
 .compact-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(102, 126, 234, 0.15);
+  border-color: #5470c6;
+  box-shadow: 0 0 0 3px rgba(84, 112, 198, 0.1), 0 2px 8px rgba(84, 112, 198, 0.15);
   transform: translateY(-1px);
 }
+
 
 /* 拖拽时的视觉反馈 */
 .grid-item {
@@ -1367,13 +1342,14 @@ const handleDrop = (event, targetView) => {
 }
 
 .compact-btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #5470c6;
   color: white;
 }
 
 .compact-btn-primary:hover:not(:disabled) {
+  background: #4558a3;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(84, 112, 198, 0.3);
 }
 
 .compact-btn-primary:active:not(:disabled) {
@@ -1595,6 +1571,7 @@ const handleDrop = (event, targetView) => {
   box-shadow: 0 0 0 3px rgba(84, 112, 198, 0.1);
 }
 
+
 .selector-actions {
   display: flex;
   gap: 10px;
@@ -1614,13 +1591,13 @@ const handleDrop = (event, targetView) => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #5470c6 0%, #4558a3 100%);
+  background: #5470c6;
   color: white;
   box-shadow: 0 2px 6px rgba(84, 112, 198, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4558a3 0%, #3a4a8e 100%);
+  background: #4558a3;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(84, 112, 198, 0.4);
 }

@@ -18,6 +18,34 @@ class PositionService:
     def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
     
+    def get_job_titles_list(self) -> List[str]:
+        """
+        获取职位名称列表（前100个）
+        从job_summary_by_title表中获取前100个不重复的职位名称
+        
+        Returns:
+            职位名称列表，按字母顺序排序，最多100个
+        """
+        query = """
+            SELECT DISTINCT job_title
+            FROM job_summary_by_title
+            WHERE job_title IS NOT NULL
+            ORDER BY job_title
+            LIMIT 100
+        """
+        
+        results = self.db_manager.execute_query(query)
+        
+        if not results:
+            logger.warning("未找到任何职位数据")
+            return []
+        
+        # 提取职位名称列表
+        job_titles = [row[0] for row in results if row[0]]
+        
+        logger.info(f"获取到 {len(job_titles)} 个职位（限制为前100个）")
+        return job_titles
+    
     def get_parallel_coordinates_data(self, job_titles: List[str]) -> Dict[str, Any]:
         """
         获取平行坐标图数据
