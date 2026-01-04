@@ -213,9 +213,14 @@ onUnmounted(() => {
   border-radius: 12px;
   padding: 16px 20px 20px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  min-height: 360px;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.wordcloud-container:hover {
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
 }
 
 .wordcloud-header {
@@ -246,11 +251,15 @@ onUnmounted(() => {
 .wordcloud-chart-wrapper {
   position: relative;
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .wordcloud-chart {
   width: 100%;
-  height: 320px;
+  flex: 1;
+  min-height: 200px;
 }
 
 .wordcloud-loading,

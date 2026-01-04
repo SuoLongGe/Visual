@@ -243,8 +243,14 @@ const getIndicatorStyle = () => {
 }
 
 .tab-button.active {
-  color: #d97757;
+  color: #ffffff;
   font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.tab-button.active:hover {
+  color: #ffffff;
+  transform: translateY(-2px);
 }
 
 .tab-label {
@@ -257,12 +263,13 @@ const getIndicatorStyle = () => {
   position: absolute;
   top: 6px;
   height: calc(100% - 12px);
-  background: rgba(217, 119, 87, 0.9);
+  background: linear-gradient(135deg, #d97757 0%, #c96643 100%);
   backdrop-filter: blur(10px);
   border-radius: 8px;
   box-shadow: 
-    0 2px 12px rgba(217, 119, 87, 0.3),
-    0 0 0 1px rgba(217, 119, 87, 0.2);
+    0 2px 12px rgba(217, 119, 87, 0.4),
+    0 4px 8px rgba(217, 119, 87, 0.3),
+    0 0 0 1px rgba(217, 119, 87, 0.3);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
   opacity: 1;
