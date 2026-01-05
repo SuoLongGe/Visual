@@ -118,9 +118,38 @@ const render3DChart = (data) => {
   chart3D = echarts.init(container)
   
   const data3d = data.data_3d || []
+  
+  // 计算薪资的最大值和最小值，用于颜色映射
+  const salaries = data3d.map(item => item[2]).filter(val => typeof val === 'number' && !isNaN(val))
+  const minSalary = Math.min(...salaries)
+  const maxSalary = Math.max(...salaries)
+  const salaryRange = maxSalary - minSalary || 1 // 避免除零
+  
+  // 颜色映射函数：薪资越高，颜色越深（从浅蓝到深蓝）
+  const getColorBySalary = (salary) => {
+    if (typeof salary !== 'number' || isNaN(salary)) {
+      return '#87CEEB' // 默认浅蓝色
+    }
+    
+    // 归一化薪资值到0-1范围
+    const normalized = (salary - minSalary) / salaryRange
+    
+    // 使用蓝色系渐变：从浅蓝(#87CEEB, rgb(135,206,235))到深蓝(#1E3A8A, rgb(30,58,138))
+    // 线性插值
+    const r = Math.floor(135 + (30 - 135) * normalized)   // 135->30
+    const g = Math.floor(206 + (58 - 206) * normalized)    // 206->58
+    const b = Math.floor(235 + (138 - 235) * normalized)   // 235->138
+    
+    return `rgb(${r}, ${g}, ${b})`
+  }
+  
   const scatterData = data3d.map((item, idx) => ({
     value: item,
-    itemIndex: idx
+    itemIndex: idx,
+    itemStyle: {
+      color: getColorBySalary(item[2]),
+      opacity: 0.9
+    }
   }))
 
   chart3D.setOption({
@@ -149,8 +178,8 @@ const render3DChart = (data) => {
       emphasis: {
         label: { show: true, textStyle: { fontSize: 14, color: '#fff', backgroundColor: 'rgba(0,0,0,0.7)', padding: 4, borderRadius: 4 } },
         itemStyle: { color: '#ff4d4f', opacity: 1 } // 红色高亮
-      },
-      itemStyle: { color: '#409EFF', opacity: 0.9 }
+      }
+      // 注意：itemStyle 现在在每个数据项中单独设置
     }]
   })
 
