@@ -625,10 +625,10 @@ onUnmounted(() => {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  /* 拉高整体容器高度，使其与右侧词云 + 相似地域模块更协调 */
-  min-height: 640px;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 640px;
 }
 
 .heatmap-header {
@@ -673,12 +673,15 @@ onUnmounted(() => {
 .heatmap-chart-wrapper {
   position: relative;
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .heatmap-chart {
   width: 100%;
+  flex: 1;
   min-height: 520px;
-  height: auto; /* 允许动态调整高度 */
 }
 
 .heatmap-loading,

@@ -1,5 +1,5 @@
 <template>
-  <div class="industry-bubble-container">
+  <div :class="['industry-bubble-container', { 'fullscreen': isFullscreen }]">
     <div class="industry-bubble-header">
       <div class="title-block">
         <h3>行业规模与区位商多维度气泡图</h3>
@@ -35,6 +35,19 @@
             </option>
           </select>
         </div>
+        <button 
+          type="button" 
+          class="fullscreen-btn"
+          @click="toggleFullscreen"
+          :title="isFullscreen ? '退出全屏' : '全屏显示'"
+        >
+          <svg v-if="!isFullscreen" class="icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+          </svg>
+          <svg v-else class="icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -74,6 +87,9 @@ const props = defineProps({
 
 const chartRef = ref(null);
 let chartInstance = null;
+
+// Fullscreen state
+const isFullscreen = ref(false);
 
 const { loading, error, bubblePayload, loadIndustryBubble } = useIndustryBubble();
 
@@ -395,6 +411,33 @@ watch(
   { deep: true },
 );
 
+// Fullscreen functionality
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value;
+  
+  if (isFullscreen.value) {
+    // Enter fullscreen
+    document.body.style.overflow = 'hidden';
+  } else {
+    // Exit fullscreen
+    document.body.style.overflow = '';
+  }
+  
+  // Resize chart to fit new container size
+  nextTick(() => {
+    if (chartInstance) {
+      chartInstance.resize();
+    }
+  });
+};
+
+// Handle ESC key to exit fullscreen
+const handleEscKey = (e) => {
+  if (e.key === 'Escape' && isFullscreen.value) {
+    toggleFullscreen();
+  }
+};
+
 // 当城市分级或行业高亮筛选变化时，基于已加载数据做前端重绘
 watch(
   () => [filteredBubbleData.value, selectedIndustry.value, activeTiers.value],
@@ -414,6 +457,9 @@ onMounted(() => {
   } else if (hasData.value) {
     renderChart();
   }
+  
+  // Add ESC key listener for fullscreen
+  window.addEventListener('keydown', handleEscKey);
 });
 
 onUnmounted(() => {
@@ -421,6 +467,10 @@ onUnmounted(() => {
     chartInstance.dispose();
     chartInstance = null;
   }
+  
+  // Remove ESC key listener and clean up body overflow
+  window.removeEventListener('keydown', handleEscKey);
+  document.body.style.overflow = '';
 });
 </script>
 
@@ -431,6 +481,40 @@ onUnmounted(() => {
   padding: 16px 20px 20px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease-in-out;
+}
+
+.industry-bubble-container:not(.fullscreen):hover {
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+.industry-bubble-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  margin: 0;
+  border-radius: 0;
+  max-width: none;
+  padding: 88px 32px 32px 32px; /* 顶部留出88px给固定导航栏 */
+}
+
+.industry-bubble-container.fullscreen .industry-bubble-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.industry-bubble-container.fullscreen .industry-bubble-chart {
+  height: calc(100vh - 228px); /* 减去顶部导航栏(88px)、容器padding(88px+32px)和header高度 */
+}
+
+.industry-bubble-container.fullscreen .industry-bubble-chart-wrapper {
+  flex: 1;
   display: flex;
   flex-direction: column;
 }
@@ -466,6 +550,13 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
+.industry-bubble-container.fullscreen .controls {
+  background-color: #f9fafb;
+  padding: 12px 16px;
+  border-radius: 8px;
+  gap: 20px;
+}
+
 .control-group {
   display: flex;
   flex-direction: column;
@@ -493,12 +584,20 @@ onUnmounted(() => {
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
+  flex-shrink: 0;
 }
 
 .tier-pill:hover {
   background-color: #e5efff;
   border-color: #bfdbfe;
   color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
+}
+
+.tier-pill:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
 }
 
 .tier-pill.active {
@@ -506,6 +605,15 @@ onUnmounted(() => {
   border-color: #3b82f6;
   color: #1d4ed8;
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
+  font-weight: 500;
+}
+
+.tier-pill.active:hover {
+  background-color: #bfdbfe;
+  border-color: #2563eb;
+  color: #1e40af;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 }
 
 .control-group select {
@@ -516,6 +624,72 @@ onUnmounted(() => {
   font-size: 13px;
   background-color: #fff;
   color: #111827;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.control-group select:hover {
+  border-color: #9ca3af;
+  background-color: #f9fafb;
+}
+
+.control-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.fullscreen-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  flex-shrink: 0;
+}
+
+.fullscreen-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+  color: #1f2937;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.fullscreen-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.industry-bubble-container.fullscreen .fullscreen-btn {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.industry-bubble-container.fullscreen .fullscreen-btn:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.3);
+}
+
+.industry-bubble-container.fullscreen .fullscreen-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 6px rgba(59, 130, 246, 0.2);
+}
+
+.fullscreen-btn .icon {
+  width: 20px;
+  height: 20px;
 }
 
 .industry-bubble-chart-wrapper {
@@ -547,6 +721,31 @@ onUnmounted(() => {
   border-color: #fca5a5;
   color: #b91c1c;
   background: #fef2f2;
+}
+
+/* 响应式支持 - 移动端全屏模式 */
+@media (max-width: 768px) {
+  .industry-bubble-container.fullscreen {
+    padding: 80px 16px 16px 16px; /* 移动端导航栏可能不同 */
+  }
+  
+  .industry-bubble-container.fullscreen .industry-bubble-chart {
+    height: calc(100vh - 200px);
+  }
+  
+  .industry-bubble-container.fullscreen .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .industry-bubble-container.fullscreen .control-group {
+    width: 100%;
+  }
+  
+  .industry-bubble-container.fullscreen .control-group select {
+    width: 100%;
+  }
 }
 </style>
 

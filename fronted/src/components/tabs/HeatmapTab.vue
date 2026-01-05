@@ -46,10 +46,7 @@
         <span class="label">提示</span>
         <span class="value">“其他”类别使用灰色显示，数值已归一化处理以避免影响具体类别的颜色对比。</span>
       </div>
-      <div class="info-item" v-if="selectedCityCode">
-        <span class="label">当前城市</span>
-        <span class="value">{{ selectedCityCode }} 的行业词云（前 {{ wordcloudTopN }} 个）</span>
-      </div>
+
     </div>
 
     <div class="heatmap-content">
@@ -65,19 +62,22 @@
           @city-click="handleCityClick"
         />
       </div>
-      <div class="wordcloud-panel">
+      <div class="right-panel">
+        <CurrentCityCard
+          :city="selectedCityCode"
+          :city-name="selectedCityName"
+          :wordcloud-top-n="wordcloudTopN"
+        />
         <CityWordcloud
           :city="selectedCityCode"
           :auto-fetch="true"
           :top-n="wordcloudTopN"
         />
-        <div class="region-similarity-wrapper">
-          <RegionSimilarityChart
-            :city="selectedCityCode"
-            :auto-fetch="true"
-            :top-similar="5"
-          />
-        </div>
+        <RegionSimilarityChart
+          :city="selectedCityCode"
+          :auto-fetch="true"
+          :top-similar="5"
+        />
       </div>
     </div>
 
@@ -90,6 +90,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import CityTierHeatmap from '../charts/CityTierHeatmap.vue';
+import CurrentCityCard from '../charts/CurrentCityCard.vue';
 import CityWordcloud from '../charts/CityWordcloud.vue';
 import RegionSimilarityChart from '../charts/RegionSimilarityChart.vue';
 import IndustryBubbleChart from '../charts/IndustryBubbleChart.vue';
@@ -111,6 +112,7 @@ const metricOptions = [
 const selectedTier = ref('first_tier');
 const selectedMetric = ref('job_count');
 const selectedCityCode = ref(null);
+const selectedCityName = ref(null);
 const wordcloudTopN = ref(10);
 
 const { loading, error, heatmapPayload, loadHeatmap } = useHeatmapData();
@@ -130,6 +132,7 @@ const handleFilterChange = () => {
 const handleCityClick = (payload) => {
   if (!payload || !payload.city) return;
   selectedCityCode.value = payload.city;
+  selectedCityName.value = payload.cityName || null;
 };
 
 watch(
@@ -194,6 +197,19 @@ watch(
   font-size: 14px;
   background-color: #fff;
   color: #111827;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.filter-group select:hover {
+  border-color: #9ca3af;
+  background-color: #f9fafb;
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .info-bar {
@@ -224,18 +240,44 @@ watch(
 
 .heatmap-content {
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
 }
 
-.heatmap-panel,
-.wordcloud-panel {
-  min-height: 360px;
+.heatmap-panel {
+  min-height: 640px;
+  display: flex;
 }
 
-.region-similarity-wrapper {
-  margin-top: 12px;
+.heatmap-panel :deep(.heatmap-container) {
+  flex: 1;
+}
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.right-panel :deep(.current-city-card) {
+  flex-shrink: 0;
+  height: 120px;
+}
+
+.right-panel :deep(.wordcloud-container) {
+  flex: 1.2;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.right-panel :deep(.region-similarity-container) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .bubble-section {
@@ -249,6 +291,10 @@ watch(
 @media (max-width: 1024px) {
   .heatmap-content {
     grid-template-columns: minmax(0, 1fr);
+  }
+  
+  .right-panel {
+    min-height: auto;
   }
 }
 </style>
